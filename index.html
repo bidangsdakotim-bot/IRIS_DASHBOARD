@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -158,6 +159,10 @@ body{
   line-height:1.5;
 }
 .card__desc strong{color:var(--ink);}
+.card__breakdown{margin:0 0 8px;}
+.card__breakdown-row{margin:0 0 3px;font-size:13px;color:var(--muted);line-height:1.4;}
+.card__breakdown-row:last-child{margin-bottom:0;}
+.card__breakdown-row strong{color:var(--ink);font-weight:700;}
 
 button.card{
   font-family:inherit;
@@ -634,16 +639,19 @@ a:focus-visible, button:focus-visible, input:focus-visible{
     <div class="cards">
 
       <button class="card card--canal card--clickable" type="button" id="dirToggleBtn" aria-expanded="false" aria-controls="dirPanel">
-        <p class="card__eyebrow">Total DIR</p>
-        <p class="card__value" id="totalDIRValue">82<span class="unit">D.I.R.</span></p>
-        <p class="card__desc"><strong id="totalDIRLabel">Daerah Irigasi Rawa</strong> &middot; <span id="totalDILine">1 Daerah Irigasi (D.I.)</span></p>
+        <p class="card__eyebrow">Total Daerah Irigasi</p>
+        <p class="card__value" id="totalDIRValue">83</p>
+        <div class="card__breakdown">
+          <p class="card__breakdown-row"><strong id="totalDIRCount">82</strong> <span id="totalDIRLabel">Daerah Irigasi Rawa</span></p>
+          <p class="card__breakdown-row"><strong id="totalDICount">1</strong> <span id="totalDILabel">Daerah Irigasi</span></p>
+        </div>
         <span class="card__action">Lihat daftar DIR <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
       </button>
 
       <article class="card card--dynamic-kondisi">
         <p class="card__eyebrow">Kondisi Saluran</p>
         <p class="card__value" id="kondisiSaluranValue">65<span class="unit">%</span></p>
-        <p class="card__desc">Rata-rata seluruh jaringan &middot; kategori <strong id="kondisiKategoriGlobal">—</strong></p>
+        <p class="card__desc">Luas daerah irigasi kewenangan dalam kondisi <strong id="kondisiKategoriGlobal">—</strong></p>
       </article>
 
       <button class="card card--lumpur card--clickable" type="button" id="luasLayananToggleBtn" aria-expanded="false" aria-controls="luasLayananPanel">
@@ -851,7 +859,7 @@ function getKategori(persen){
    Apps Script selesai di-deploy. Nilainya sengaja ditandai
    sebagai "Contoh" di tampilan (lihat initTanggalData).
    ========================================================= */
-const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 65, luasLayananHa: 20296, laporanMasuk: 2 };
+const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 66.39, statusKondisi: "Baik", luasLayananHa: 20296, laporanMasuk: 2 };
 
 /* Kartu "Total DIR": jumlah Daerah Irigasi Rawa (D.I.R.) vs Daerah
    Irigasi biasa (D.I.), sumber sheet Irigasi_Umum. */
@@ -1015,20 +1023,26 @@ function initKartuRingkasan(){
   // kalau sheet Irigasi_Umum belum tersedia/kosong.
   const dirEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.R.');
   const diEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.');
-  const jumlahDIR = dirEntry ? dirEntry.jumlah : KARTU_RINGKASAN.totalJaringan;
+  const jumlahDIR = dirEntry ? dirEntry.jumlah : (KARTU_RINGKASAN.totalJaringan ?? 0);
   const jumlahDI = diEntry ? diEntry.jumlah : null;
+  const totalGabungan = jumlahDIR + (jumlahDI ?? 0);
 
-  document.getElementById('totalDIRValue').innerHTML =
-    `${formatRibuan(jumlahDIR)}<span class="unit">D.I.R.</span>`;
+  document.getElementById('totalDIRValue').textContent = formatRibuan(totalGabungan);
+  document.getElementById('totalDIRCount').textContent = formatRibuan(jumlahDIR);
   document.getElementById('totalDIRLabel').textContent = dirEntry ? dirEntry.saluran : 'Daerah Irigasi Rawa';
-  document.getElementById('totalDILine').textContent =
-    jumlahDI != null ? `${formatRibuan(jumlahDI)} Daerah Irigasi (D.I.)` : '—';
+  document.getElementById('totalDICount').textContent = jumlahDI != null ? formatRibuan(jumlahDI) : '—';
+  document.getElementById('totalDILabel').textContent = diEntry ? diEntry.saluran : 'Daerah Irigasi';
 
   const kondisiPersen = KARTU_RINGKASAN.kondisiSaluran;
   document.getElementById('kondisiSaluranValue').innerHTML =
     `${kondisiPersen ?? '—'}<span class="unit">%</span>`;
+  // Label kategori ("Baik", dst.) diambil apa adanya dari kolom "Status" di
+  // IRIS Tampil (ditentukan manual oleh admin). Kalau belum diisi, baru
+  // dihitung otomatis dari ambang batas KATEGORI_CONFIG sebagai cadangan.
+  const statusManual = KARTU_RINGKASAN.statusKondisi;
   const kategoriGlobal = getKategori(kondisiPersen ?? 0);
-  document.getElementById('kondisiKategoriGlobal').textContent = kondisiPersen != null ? kategoriGlobal.nama : '—';
+  document.getElementById('kondisiKategoriGlobal').textContent =
+    statusManual || (kondisiPersen != null ? kategoriGlobal.nama : '—');
 
   document.getElementById('luasLayananValue').innerHTML =
     `${formatRibuan(KARTU_RINGKASAN.luasLayananHa)}<span class="unit">Ha</span>`;
