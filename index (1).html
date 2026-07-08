@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard IRIS — Irigasi Rawa Kotawaringin Timur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Domine:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --ink:#16323A;
+  --paper:#EEF3EF;
+  --paper-raised:#FFFFFF;
+  --canal:#1D6E8C;
+  --canal-dark:#124B60;
+  --canal-light:#8FBFCE;
+  --header-blue:#1E90FF;
+  --header-blue-dark:#006AD0;
+  --lumpur:#A9672E;
+  --lumut:#3F7A5C;
+  --karat:#B23A2E;
+  --line:rgba(22,50,58,0.14);
+  --muted:#5B7178;
+
+  --cat-1:#A6362B;
+  --cat-2:#C06A2E;
+  --cat-3:#C9A227;
+  --cat-4:#6E9A4C;
+  --cat-5:#2F7A57;
+
+  --font-display:'Domine', serif;
+  --font-body:'IBM Plex Sans', sans-serif;
+  --font-mono:'IBM Plex Mono', monospace;
+
+  --radius:6px;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- Masthead ---------- */
+.masthead{
+  background:var(--header-blue);
+  color:var(--paper);
+  padding:36px 24px 30px;
+  border-bottom:3px solid var(--header-blue-dark);
+}
+.masthead__inner{max-width:1180px;margin:0 auto;}
+.eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--paper);
+  margin:0 0 14px;
+}
+.masthead__title{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:40px;
+  margin:0 0 6px;
+  letter-spacing:-0.01em;
+}
+.masthead__subtitle{
+  margin:0 0 18px;
+  font-size:16px;
+  color:#C9D9D6;
+}
+.masthead__tags{display:flex;gap:10px;flex-wrap:wrap;}
+.tag{
+  font-family:var(--font-mono);
+  font-size:12px;
+  padding:5px 10px;
+  border-radius:3px;
+  border:1px solid rgba(255,255,255,0.28);
+  color:var(--paper);
+}
+.tag--muted{color:#9FB3AF;border-color:rgba(255,255,255,0.16);}
+
+/* ---------- Dashboard sheet layout ---------- */
+.sheet{
+  max-width:1180px;
+  margin:0 auto;
+  padding:8px 24px 40px;
+}
+.dash-section{
+  padding:36px 0 8px;
+  border-top:1px solid var(--line);
+}
+.dash-section:first-child{border-top:none;}
+.section-title{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:24px;
+  margin:0 0 8px;
+  color:var(--ink);
+}
+.section-intro{
+  margin:0 0 20px;
+  color:var(--muted);
+  max-width:70ch;
+  font-size:14.5px;
+}
+
+/* ---------- Cards ---------- */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:16px;
+}
+.card{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-top:3px solid var(--canal);
+  border-radius:var(--radius);
+  padding:18px 18px 16px;
+}
+.card--dynamic-kondisi{border-top-color:var(--canal-dark);}
+.card--lumpur{border-top-color:var(--lumpur);}
+.card--karat{border-top-color:var(--karat);}
+.card__eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin:0 0 10px;
+}
+.card__value{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:32px;
+  margin:0 0 8px;
+  color:var(--ink);
+}
+.card__value .unit{
+  font-family:var(--font-body);
+  font-weight:500;
+  font-size:15px;
+  color:var(--muted);
+  margin-left:4px;
+}
+.card__desc{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.5;
+}
+.card__desc strong{color:var(--ink);}
+
+button.card{
+  font-family:inherit;
+  text-align:left;
+  cursor:pointer;
+  width:100%;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-top:3px solid var(--canal);
+}
+button.card:hover{background:#F7FAF9;}
+button.card.card--karat{border-top-color:var(--karat);}
+.card__action{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:12px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--canal);
+}
+.card__chevron{display:inline-block;transition:transform 0.25s ease;}
+button.card[aria-expanded="true"] .card__chevron{transform:rotate(180deg);}
+
+/* ---------- Sub-tabel daftar saluran per DIR ---------- */
+.dir-row{cursor:pointer;}
+.dir-row:hover{background:#EEF6F4 !important;}
+.row-caret{
+  display:inline-block;
+  margin-left:6px;
+  font-size:11px;
+  color:var(--canal);
+  transition:transform 0.2s ease;
+}
+.dir-row.is-open .row-caret{transform:rotate(90deg);}
+.dir-detail-row td{padding:0;border-bottom:1px solid var(--line);background:#F5F8F7;}
+.dir-detail{padding:14px 18px 18px 30px;}
+.sub-table{width:100%;border-collapse:collapse;font-size:13px;background:transparent;}
+.sub-table th{
+  text-align:left;
+  padding:6px 10px;
+  font-family:var(--font-mono);
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+  color:var(--muted);
+  border-bottom:1px solid var(--line);
+  white-space:nowrap;
+}
+.sub-table td{padding:6px 10px;border-bottom:1px solid rgba(22,50,58,0.06);white-space:nowrap;}
+.sub-table tr:last-child td{border-bottom:none;}
+.badge--neutral{background:#93A5A1;}
+
+/* ---------- Map toggle & panel ---------- */
+.map-toggle{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-left:4px solid var(--canal);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  cursor:pointer;
+  text-align:left;
+  font-family:var(--font-body);
+  transition:background 0.15s ease;
+}
+.map-toggle:hover{background:#F7FAF9;}
+.map-toggle__text{flex:1;min-width:0;}
+.map-toggle__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:6px;
+}
+.map-toggle__title{
+  display:block;
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:18px;
+  color:var(--ink);
+}
+.map-toggle__desc{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin-top:2px;
+  margin-bottom:12px;
+}
+.map-toggle__track{
+  display:block;
+  height:8px;
+  background:var(--line);
+  border-radius:4px;
+  overflow:hidden;
+  margin-bottom:8px;
+}
+.map-toggle__fill{display:block;height:100%;border-radius:4px;}
+.map-toggle__meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--muted);
+}
+.map-toggle__chevron{
+  font-size:18px;
+  color:var(--canal);
+  transition:transform 0.25s ease;
+  flex-shrink:0;
+}
+.map-toggle[aria-expanded="true"] .map-toggle__chevron{transform:rotate(180deg);}
+
+.peta-panel{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  transition:max-height 0.4s ease, opacity 0.3s ease, margin-top 0.4s ease;
+  margin-top:0;
+}
+.peta-panel.is-open{
+  max-height:1400px;
+  opacity:1;
+  margin-top:22px;
+}
+
+.map-controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.layer-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-size:13.5px;
+  font-family:var(--font-body);
+  font-weight:500;
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:7px 14px;
+  cursor:pointer;
+  user-select:none;
+}
+.layer-chip input{accent-color:var(--canal);width:14px;height:14px;}
+.layer-chip__dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.layer-chip--canal .layer-chip__dot{background:var(--canal);}
+.layer-chip--karat .layer-chip__dot{background:var(--karat);}
+.layer-chip__count{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--muted);
+}
+
+#map{
+  height:460px;
+  width:100%;
+  border-radius:var(--radius);
+  border:1px solid var(--line);
+  background:#DCE7E4;
+}
+
+.map-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:18px;
+  margin-top:14px;
+  font-size:12.5px;
+  color:var(--muted);
+}
+.legend-item{display:inline-flex;align-items:center;gap:7px;}
+.legend-swatch{display:inline-block;width:20px;height:0;border-radius:2px;}
+.legend-swatch--primer{border-top:4px solid var(--canal-dark);}
+.legend-swatch--sekunder{border-top:2px solid var(--canal-light);}
+.legend-dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+.legend-dot--karat{background:var(--karat);}
+.legend-dot--lumpur{background:var(--lumpur);}
+.map-caption{
+  margin:14px 0 0;
+  font-size:12px;
+  font-style:italic;
+  color:var(--muted);
+}
+
+/* Leaflet popup theming */
+.leaflet-popup-content-wrapper{
+  border-radius:var(--radius);
+  font-family:var(--font-body);
+}
+.popup{max-width:230px;}
+.popup__kategori{
+  display:inline-block;
+  font-family:var(--font-mono);
+  font-size:10.5px;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+  padding:2px 7px;
+  border-radius:3px;
+  margin-bottom:8px;
+  color:#fff;
+}
+.popup__kategori--aduan{background:var(--karat);}
+.popup__kategori--usulan{background:var(--lumpur);}
+.popup__kategori--saluran{background:var(--canal);}
+.popup h4{margin:0 0 6px;font-family:var(--font-display);font-size:15px;}
+.popup p{margin:0 0 6px;font-size:13px;}
+.popup__photo{
+  width:100%;
+  height:110px;
+  object-fit:cover;
+  border-radius:4px;
+  margin-bottom:8px;
+  background:#e2e8e6;
+  display:block;
+}
+.popup__photo-fallback{
+  width:100%;
+  height:110px;
+  border-radius:4px;
+  margin-bottom:8px;
+  background:#e2e8e6;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  color:var(--muted);
+  font-size:11px;
+  text-align:center;
+  padding:8px;
+}
+.popup__meta{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px;}
+
+/* ---------- Monitoring Infrastruktur Irigasi ---------- */
+.monitoring-layout{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+  align-items:start;
+}
+.monitoring-side{display:flex;flex-direction:column;gap:16px;}
+
+.kegiatan-list{display:flex;flex-direction:column;gap:14px;}
+.kegiatan-item{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:16px 18px;
+}
+.kegiatan-item__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:10px;
+}
+.kegiatan-item__nama{font-family:var(--font-display);font-weight:600;font-size:15.5px;color:var(--ink);}
+.kegiatan-item__track{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.kegiatan-item__fill{height:100%;border-radius:4px;}
+.kegiatan-item__meta{font-family:var(--font-mono);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;}
+
+.badge--proses{background:var(--canal);}
+.badge--selesai{background:var(--lumut);}
+.badge--pemantauan{background:var(--lumpur);}
+.badge--berjalan{background:var(--canal);}
+
+/* Status validasi laporan (sesuai 3 pilihan di kolom "Validasi Laporan" sheet) */
+.badge--baru{background:var(--canal);}
+.badge--diproses{background:#93A5A1;}
+/* "Selesai" pakai badge--selesai yang sudah ada (hijau var(--lumut)) */
+
+/* Kategori laporan: samakan warnanya dengan penanda di peta (popup__kategori) */
+.badge--kat-aduan{background:var(--karat);}
+.badge--kat-usulan{background:var(--lumpur);}
+
+/* Fokus IRIS */
+.fokus-card{
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:18px;
+}
+.fokus-card__title{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:16px;
+  margin:0 0 14px;
+  color:var(--ink);
+}
+.fokus-item{padding:10px 0;border-top:1px solid var(--line);}
+.fokus-item:first-of-type{border-top:none;padding-top:0;}
+.fokus-item__judul{
+  margin:0 0 4px;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--canal-dark);
+}
+.fokus-item__desc{margin:0;font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+/* Analytics (kartu gelap) */
+.analytics-card{
+  background:var(--ink);
+  color:var(--paper);
+  border-radius:var(--radius);
+  padding:20px;
+}
+.analytics-card__eyebrow{
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--canal-light);
+  margin:0 0 10px;
+}
+.analytics-card__value{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:34px;
+  margin:0 0 6px;
+}
+.analytics-card__value .unit{font-family:var(--font-body);font-weight:500;font-size:15px;color:#C9D9D6;margin-left:2px;}
+.analytics-card__desc{margin:0 0 18px;font-size:12.5px;color:#C9D9D6;line-height:1.5;}
+.analytics-card__bars{display:flex;flex-direction:column;gap:12px;}
+.analytics-card__bar-label{
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#C9D9D6;
+  margin-bottom:5px;
+}
+.analytics-card__bar-track{height:7px;background:rgba(255,255,255,0.16);border-radius:4px;overflow:hidden;}
+.analytics-card__bar-fill{height:100%;background:var(--canal-light);border-radius:4px;}
+
+@media (max-width: 760px){
+  .monitoring-layout{grid-template-columns:1fr;}
+}
+
+/* ---------- Panel Laporan Warga ---------- */
+.laporan-cta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.btn-buat-laporan{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  background:var(--karat);
+  color:#fff;
+  text-decoration:none;
+  font-family:var(--font-body);
+  font-weight:600;
+  font-size:13.5px;
+  padding:11px 18px;
+  border-radius:var(--radius);
+  border:none;
+  transition:background 0.15s ease;
+}
+.btn-buat-laporan:hover{background:#8F2F25;}
+.btn-lihat-peta{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  background:transparent;
+  border:1px solid var(--canal);
+  color:var(--canal);
+  font-family:var(--font-mono);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.03em;
+  padding:5px 10px;
+  border-radius:4px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.btn-lihat-peta:hover{background:var(--canal);color:#fff;}
+.td-desc-laporan{white-space:normal;min-width:220px;max-width:340px;}
+
+/* ---------- Table ---------- */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);}
+table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--paper-raised);}
+thead tr{background:var(--ink);}
+th{
+  text-align:left;
+  padding:11px 14px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--paper);
+  font-weight:500;
+  white-space:nowrap;
+}
+td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;}
+tbody tr:nth-child(even){background:#F5F8F7;}
+tbody tr:last-child td{border-bottom:none;}
+.td-nama{font-weight:600;}
+.badge{
+  display:inline-block;
+  padding:3px 10px;
+  border-radius:12px;
+  color:#fff;
+  font-size:12px;
+  font-weight:500;
+}
+.table-footnote{
+  margin:12px 2px 0;
+  font-size:12px;
+  color:var(--muted);
+  font-style:italic;
+}
+
+/* ---------- Footer ---------- */
+.site-footer{
+  max-width:1180px;
+  margin:0 auto;
+  padding:22px 24px 40px;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:12.5px;
+}
+.site-footer p{margin:0 0 4px;}
+.site-footer__meta{font-family:var(--font-mono);font-size:11.5px;}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 760px){
+  .sheet::before{display:none;}
+  .cards{grid-template-columns:1fr 1fr;}
+  .masthead__title{font-size:30px;}
+  .analytics-row{grid-template-columns:120px 1fr 44px;}
+}
+@media (max-width: 480px){
+  .cards{grid-template-columns:1fr;}
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  .peta-panel, .map-toggle__chevron{transition:none;}
+}
+
+/* ---------- Focus visibility ---------- */
+a:focus-visible, button:focus-visible, input:focus-visible{
+  outline:2px solid var(--canal);
+  outline-offset:2px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead__inner">
+    <p class="eyebrow">Pemerintah Kabupaten Kotawaringin Timur &middot; Dinas Pekerjaan Umum &mdash; Bidang Sumber Daya Air</p>
+    <h1 class="masthead__title">Dashboard IRIS</h1>
+    <p class="masthead__subtitle">Pemantauan Jaringan Irigasi Rawa &mdash; Prototipe Internal</p>
+    <div class="masthead__tags">
+      <span class="tag">Pilot Project: 6 dari 82 DIR</span>
+      <span class="tag tag--muted" id="tanggalData">Data per —</span>
+    </div>
+  </div>
+</div>
+
+<main class="sheet">
+
+  <section class="dash-section" id="sec-ringkasan">
+    <h2 class="section-title">Ringkasan Jaringan</h2>
+    <div class="cards">
+
+      <button class="card card--canal card--clickable" type="button" id="dirToggleBtn" aria-expanded="false" aria-controls="dirPanel">
+        <p class="card__eyebrow">Total DIR</p>
+        <p class="card__value" id="totalDIRValue">82</p>
+        <p class="card__desc">Daerah Irigasi Rawa terdaftar &mdash; 6 DIR pilot ditampilkan pada dashboard ini</p>
+        <span class="card__action">Lihat daftar DIR <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
+      </button>
+
+      <article class="card card--dynamic-kondisi">
+        <p class="card__eyebrow">Kondisi Saluran</p>
+        <p class="card__value" id="kondisiSaluranValue">65<span class="unit">%</span></p>
+        <p class="card__desc">Rata-rata seluruh jaringan &middot; kategori <strong id="kondisiKategoriGlobal">—</strong></p>
+      </article>
+
+      <article class="card card--lumpur">
+        <p class="card__eyebrow">Luas Layanan</p>
+        <p class="card__value" id="luasLayananValue">14.560<span class="unit">Ha</span></p>
+        <p class="card__desc">Total area layanan irigasi rawa di seluruh DIR</p>
+      </article>
+
+      <button class="card card--karat card--clickable" type="button" id="laporanToggleBtn" aria-expanded="false" aria-controls="laporanPanel">
+        <p class="card__eyebrow">Laporan Masuk</p>
+        <p class="card__value" id="jumlahAduan">—</p>
+        <p class="card__desc">Aduan &amp; usulan warga &middot; dihitung otomatis dari formulir</p>
+        <span class="card__action">Lihat daftar laporan <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
+      </button>
+
+    </div>
+
+    <div class="peta-panel" id="dirPanel">
+      <h2 class="section-title">Daftar DIR Terdigitalisasi</h2>
+      <p class="section-intro">Data geometri &amp; panjang saluran berasal dari berkas GeoJSON resmi. Klik salah satu baris DIR untuk melihat daftar saluran di dalamnya. Kondisi saluran menunggu hasil survei per segmen dari admin.</p>
+      <div class="table-wrap">
+        <table id="dirTable">
+          <thead>
+            <tr>
+              <th>Nama DIR</th>
+              <th>Segmen</th>
+              <th>Primer</th>
+              <th>Sekunder</th>
+              <th>Panjang Total</th>
+              <th>Kondisi</th>
+            </tr>
+          </thead>
+          <tbody id="dirTableBody"></tbody>
+        </table>
+      </div>
+      <p class="table-footnote">Kondisi akan tampil otomatis begitu kolom Kondisi_Persen di Data_Master_DIR terisi oleh admin.</p>
+    </div>
+
+    <div class="peta-panel" id="laporanPanel">
+      <h2 class="section-title">Daftar Laporan Warga (Aduan &amp; Usulan)</h2>
+      <p class="section-intro">Rekap seluruh aduan kendala lapangan dan usulan kegiatan yang masuk lewat formulir warga, beserta status validasinya.</p>
+
+      <div class="laporan-cta">
+        <p class="table-footnote" style="margin:0;">Klik "Lihat di peta" pada suatu baris untuk melihat lokasinya langsung.</p>
+        <a class="btn-buat-laporan" href="https://forms.gle/rou96AJFD3VdpB757" target="_blank" rel="noopener">
+          &#43; Buat Laporan / Aduan Baru
+        </a>
+      </div>
+
+      <div class="table-wrap">
+        <table id="laporanTable">
+          <thead>
+            <tr>
+              <th>Kategori</th>
+              <th>Deskripsi</th>
+              <th>Kecamatan / Desa</th>
+              <th>Saluran Terkait</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="laporanTableBody"></tbody>
+        </table>
+      </div>
+      <p class="table-footnote">Nama, kontak, dan email pelapor tidak ditampilkan pada dashboard publik ini.</p>
+    </div>
+  </section>
+
+  <section class="dash-section" id="sec-peta-toggle">
+    <button class="map-toggle" id="mapToggleBtn" type="button" aria-expanded="false" aria-controls="petaPanel">
+      <span class="map-toggle__text">
+        <span class="map-toggle__head">
+          <span class="map-toggle__title">Digitalisasi Peta Irigasi</span>
+          <span class="badge" id="petaStatusBadge"></span>
+        </span>
+        <span class="map-toggle__desc">Lihat sebaran saluran &amp; laporan warga di peta interaktif</span>
+        <span class="map-toggle__track">
+          <span class="map-toggle__fill" id="petaProgressFill"></span>
+        </span>
+        <span class="map-toggle__meta">
+          <span id="petaProgressLabel"></span>
+          <span id="petaTanggalLabel"></span>
+        </span>
+      </span>
+      <span class="map-toggle__chevron" aria-hidden="true">&#8595;</span>
+    </button>
+
+    <div class="peta-panel" id="petaPanel">
+      <h2 class="section-title">Peta Jaringan Saluran &amp; Laporan Warga</h2>
+      <p class="section-intro">Klik segmen saluran atau titik laporan untuk melihat detail. Gunakan kontrol di bawah untuk menampilkan atau menyembunyikan lapisan data.</p>
+
+      <div class="map-controls">
+        <label class="layer-chip layer-chip--canal">
+          <input type="checkbox" id="toggleSaluran" checked>
+          <span class="layer-chip__dot"></span>
+          Saluran <span class="layer-chip__count" id="countSaluran">(123 segmen)</span>
+        </label>
+        <label class="layer-chip layer-chip--karat">
+          <input type="checkbox" id="toggleAduan" checked>
+          <span class="layer-chip__dot"></span>
+          Aduan &amp; Usulan <span class="layer-chip__count" id="countAduan">(— titik)</span>
+        </label>
+      </div>
+
+      <div id="map"></div>
+
+      <div class="map-legend">
+        <span class="legend-item"><span class="legend-swatch legend-swatch--primer"></span>Saluran Primer</span>
+        <span class="legend-item"><span class="legend-swatch legend-swatch--sekunder"></span>Saluran Sekunder</span>
+        <span class="legend-item"><span class="legend-dot legend-dot--karat"></span>Aduan Kendala</span>
+        <span class="legend-item"><span class="legend-dot legend-dot--lumpur"></span>Usulan Kegiatan</span>
+      </div>
+      <p class="map-caption">Geometri saluran bersumber dari berkas GeoJSON resmi (WGS84) hasil digitalisasi Bidang SDA.</p>
+    </div>
+  </section>
+
+  <section class="dash-section" id="sec-monitoring">
+    <h2 class="section-title">Monitoring Infrastruktur Irigasi</h2>
+    <p class="section-intro">Rekap progres kegiatan lapangan &amp; tingkat sinkronisasi data antar unit kerja terkait.</p>
+
+    <div class="monitoring-layout">
+      <div class="kegiatan-list" id="kegiatanList"></div>
+
+      <div class="monitoring-side">
+        <div class="fokus-card" id="fokusCard">
+          <h3 class="fokus-card__title">Fokus IRIS</h3>
+          <div id="fokusItems"></div>
+        </div>
+
+        <div class="analytics-card" id="analyticsCard">
+          <p class="analytics-card__eyebrow">Dashboard Analytics</p>
+          <p class="analytics-card__value" id="analyticsValueUtama">—<span class="unit">%</span></p>
+          <p class="analytics-card__desc">Tingkat sinkronisasi data antar unit kerja</p>
+          <div class="analytics-card__bars" id="analyticsBars"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <p>Dashboard IRIS &middot; Prototipe internal &middot; Data pilot 6 DIR &middot; Kabupaten Kotawaringin Timur</p>
+  <p class="site-footer__meta">Sumber data: Google Sheets (internal) &amp; GeoJSON Dinas Pekerjaan Umum</p>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* =========================================================
+   KONFIGURASI SUMBER DATA
+   ---------------------------------------------------------
+   1) GEOJSON_URL  : berkas geometri saluran (sumber tunggal,
+      sudah diupload ke root repo GitHub yang sama dengan file ini)
+   2) APPS_SCRIPT_URL : Web App URL hasil deploy Code.gs.
+      Selama masih bertuliskan "GANTI_DENGAN_URL_WEB_APP_..."
+      dashboard otomatis memakai data contoh (fallback) supaya
+      halaman tetap bisa ditampilkan sebelum Apps Script live.
+      Setelah deploy, cukup ganti nilai di bawah ini -- tidak
+      ada bagian lain yang perlu diubah.
+   ========================================================= */
+const GEOJSON_URL = './DIR_DASHBOARD_WGS84.geojson';
+const APPS_SCRIPT_URL = 'GANTI_DENGAN_URL_WEB_APP_SETELAH_DEPLOY';
+
+/* =========================================================
+   KATEGORI KONDISI SALURAN (tetap statis -- ambang kategori
+   tidak berasal dari sheet)
+   ========================================================= */
+const KATEGORI_CONFIG = [
+  { nama: "Sangat Buruk", min: 0,  color: "var(--cat-1)" },
+  { nama: "Buruk",        min: 30, color: "var(--cat-2)" },
+  { nama: "Sedang",       min: 50, color: "var(--cat-3)" },
+  { nama: "Baik",         min: 70, color: "var(--cat-4)" },
+  { nama: "Sangat Baik",  min: 90, color: "var(--cat-5)" }
+];
+function getKategori(persen){
+  let result = KATEGORI_CONFIG[0];
+  for (const k of KATEGORI_CONFIG){
+    if (persen >= k.min) result = k;
+  }
+  return result;
+}
+
+/* =========================================================
+   DATA FALLBACK
+   Dipakai hanya jika APPS_SCRIPT_URL belum diganti (lihat di
+   atas), supaya dashboard tetap bisa ditampilkan sebelum
+   Apps Script selesai di-deploy. Nilainya sengaja ditandai
+   sebagai "Contoh" di tampilan (lihat initTanggalData).
+   ========================================================= */
+const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 65, luasLayananHa: 14560, laporanMasuk: 2 };
+
+const DATA_MONITORING_FALLBACK = [
+  { nama: "Pemeliharaan Saluran", status: "Proses", progress: 68, tanggal: "2 Juli 2026" },
+  { nama: "Normalisasi Sedimen", status: "Selesai", progress: 100, tanggal: null },
+  { nama: "Validasi Data P3A", status: "Monitoring", progress: 74, tanggal: null }
+];
+const PETA_KEGIATAN_FALLBACK = { nama: "Digitalisasi Peta Irigasi", status: "Berjalan", progress: 52, tanggal: null };
+
+const FOKUS_IRIS = [
+  { judul: "Integrasi Data", desc: "Penyatuan basis data irigasi lintas bidang dan pemangku kepentingan." },
+  { judul: "Respons Cepat", desc: "Monitoring dan tindak lanjut kerusakan berbasis laporan lapangan." },
+  { judul: "Transparansi Informasi", desc: "Penyajian data real-time untuk mendukung pengambilan keputusan." }
+];
+
+const ANALYTICS_FALLBACK = {
+  sinkronisasi: 91,
+  dataJaringan: 95,
+  pelaporanLapangan: 87,
+  validasiData: 82
+};
+
+/* 2 contoh dummy saja -- data aduan/usulan asli akan datang dari
+   Apps Script begitu tersambung, TANPA nama/kontak/email pelapor. */
+const ADUAN_FALLBACK = [
+  {
+    kategori: "Aduan Kendala Lapangan",
+    deskripsi: "Saluran tersumbat karena adanya rumput tanaman rawa yang tumbuh",
+    urgensi: "Sedang",
+    kecamatan: "Mentaya Hilir Selatan",
+    desa: "Basirih Hilir",
+    saluran: "Primer Bakung",
+    foto: null,
+    koordinat: [-2.8830, 112.9445],
+    status: "Baru"
+  },
+  {
+    kategori: "Usulan Kegiatan",
+    deskripsi: "Saluran dangkal dan tidak lancar",
+    lebar: 4,
+    kedalaman: 1.5,
+    kecamatan: "Mentaya Hilir Selatan",
+    desa: "Handil Sohor",
+    saluran: "Sei Simpang Danau",
+    foto: null,
+    koordinat: [-2.8778, 112.9585],
+    status: "Diproses"
+  }
+];
+
+/* =========================================================
+   MEMBANGUN SALURAN_DATA & DIR_STATS DARI GEOJSON
+   GeoJSON pakai urutan koordinat [lng, lat, elevasi] sesuai
+   standar; di sini ditukar ke [lat, lng] supaya cocok dengan
+   Leaflet (L.polyline mengharapkan [lat, lng]).
+   ========================================================= */
+let SALURAN_DATA = [];
+let DIR_STATS = {};
+
+function buildSaluranDataFromGeoJSON(geojson){
+  SALURAN_DATA = (geojson.features || []).map(f => {
+    const p = f.properties || {};
+    const dir = p.Nama_DIR || 'Tanpa Nama DIR';
+    const tipe = p.Tipe_Salur || 'Saluran Sekunder';
+    const name = p.NAME || `${dir} — ${tipe}`;
+    const panjang = Number(p.Panjang_m_) || 0;
+    const coords = (f.geometry && f.geometry.coordinates) || [];
+    // MultiLineString: array-of-array-of-[lng,lat,elev]
+    const lines = coords.map(line => line.map(pt => [pt[1], pt[0]]));
+    return { dir, tipe, name, panjang, lines };
+  });
+
+  DIR_STATS = {};
+  SALURAN_DATA.forEach(f => {
+    if (!DIR_STATS[f.dir]) DIR_STATS[f.dir] = { primer: 0, sekunder: 0, total_len: 0, segments: 0 };
+    const s = DIR_STATS[f.dir];
+    s.segments += 1;
+    s.total_len += f.panjang;
+    if (f.tipe === 'Saluran Primer') s.primer += 1; else s.sekunder += 1;
+  });
+}
+
+/* =========================================================
+   MEMUAT DATA DINAMIS DARI APPS SCRIPT (atau fallback)
+   ========================================================= */
+async function loadDataDinamis(){
+  const belumDiDeploy = APPS_SCRIPT_URL.indexOf('GANTI_DENGAN') === 0;
+  if (belumDiDeploy){
+    return {
+      sumber: 'contoh',
+      kartuRingkasan: KARTU_RINGKASAN_FALLBACK,
+      dataMonitoring: DATA_MONITORING_FALLBACK,
+      petaKegiatan: PETA_KEGIATAN_FALLBACK,
+      analytics: ANALYTICS_FALLBACK,
+      aduanUsulan: ADUAN_FALLBACK
+    };
+  }
+  try {
+    const res = await fetch(APPS_SCRIPT_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    json.sumber = 'live';
+    // Jaga-jaga: kalau salah satu bagian gagal terisi dari sheet, pakai fallback per-bagian
+    json.kartuRingkasan = json.kartuRingkasan || KARTU_RINGKASAN_FALLBACK;
+    json.dataMonitoring = json.dataMonitoring || DATA_MONITORING_FALLBACK;
+    json.petaKegiatan = json.petaKegiatan || PETA_KEGIATAN_FALLBACK;
+    json.analytics = json.analytics || ANALYTICS_FALLBACK;
+    json.aduanUsulan = json.aduanUsulan || [];
+    return json;
+  } catch (err){
+    console.error('Gagal memuat data dari Apps Script, memakai data contoh:', err);
+    return {
+      sumber: 'contoh (fetch gagal)',
+      kartuRingkasan: KARTU_RINGKASAN_FALLBACK,
+      dataMonitoring: DATA_MONITORING_FALLBACK,
+      petaKegiatan: PETA_KEGIATAN_FALLBACK,
+      analytics: ANALYTICS_FALLBACK,
+      aduanUsulan: ADUAN_FALLBACK
+    };
+  }
+}
+
+/* Data hasil load, disimpan di sini supaya semua fungsi init bisa akses */
+let KARTU_RINGKASAN = KARTU_RINGKASAN_FALLBACK;
+let DATA_MONITORING = DATA_MONITORING_FALLBACK;
+let PETA_KEGIATAN = PETA_KEGIATAN_FALLBACK;
+let ANALYTICS_DATA = ANALYTICS_FALLBACK;
+let ADUAN_DATA = ADUAN_FALLBACK;
+let SUMBER_DATA = 'contoh';
+
+/* =========================================================
+   INISIALISASI KARTU RINGKASAN
+   ========================================================= */
+function formatRibuan(n){
+  return (n === null || n === undefined) ? '—' : Number(n).toLocaleString('id-ID');
+}
+
+function initKartuRingkasan(){
+  document.getElementById('totalDIRValue').textContent = formatRibuan(KARTU_RINGKASAN.totalJaringan);
+
+  const kondisiPersen = KARTU_RINGKASAN.kondisiSaluran;
+  document.getElementById('kondisiSaluranValue').innerHTML =
+    `${kondisiPersen ?? '—'}<span class="unit">%</span>`;
+  const kategoriGlobal = getKategori(kondisiPersen ?? 0);
+  document.getElementById('kondisiKategoriGlobal').textContent = kondisiPersen != null ? kategoriGlobal.nama : '—';
+
+  document.getElementById('luasLayananValue').innerHTML =
+    `${formatRibuan(KARTU_RINGKASAN.luasLayananHa)}<span class="unit">Ha</span>`;
+
+  const jumlahAduan = KARTU_RINGKASAN.laporanMasuk ?? ADUAN_DATA.length;
+  document.getElementById('jumlahAduan').textContent = jumlahAduan;
+  document.getElementById('countAduan').textContent = `(${jumlahAduan} titik)`;
+
+  const now = new Date();
+  const opsi = { day: 'numeric', month: 'long', year: 'numeric' };
+  const labelSumber = SUMBER_DATA === 'live' ? '' : ' (data contoh, Apps Script belum tersambung)';
+  document.getElementById('tanggalData').textContent =
+    'Data per ' + now.toLocaleDateString('id-ID', opsi) + labelSumber;
+}
+
+/* =========================================================
+   TOGGLE PANEL PETA
+   ========================================================= */
+function initMapToggle(){
+  const btn = document.getElementById('mapToggleBtn');
+  const panel = document.getElementById('petaPanel');
+  let mapInitialized = false;
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen && !mapInitialized){
+      mapInitialized = true;
+      // Leaflet perlu tahu ukuran container setelah benar-benar terlihat
+      setTimeout(() => {
+        initMap();
+        map.invalidateSize();
+      }, 50);
+    } else if (isOpen && mapInitialized){
+      setTimeout(() => map.invalidateSize(), 400);
+    }
+  });
+}
+
+/* =========================================================
+   TOGGLE PANEL DAFTAR DIR (kartu "Total DIR")
+   ========================================================= */
+function initDirToggle(){
+  const btn = document.getElementById('dirToggleBtn');
+  const panel = document.getElementById('dirPanel');
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+}
+
+/* =========================================================
+   TOGGLE PANEL DAFTAR LAPORAN (kartu "Laporan Masuk")
+   ========================================================= */
+function initLaporanToggle(){
+  const btn = document.getElementById('laporanToggleBtn');
+  const panel = document.getElementById('laporanPanel');
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+}
+
+/* Buka panel peta (jika belum terbuka) lalu fokuskan ke satu titik laporan */
+function bukaPetaDanFokusLaporan(idx){
+  const mapBtn = document.getElementById('mapToggleBtn');
+  const mapPanel = document.getElementById('petaPanel');
+  const belumTerbuka = !mapPanel.classList.contains('is-open');
+
+  if (belumTerbuka) mapBtn.click(); // memicu initMap() + invalidateSize() bawaan
+
+  // Beri jeda supaya peta selesai diinisialisasi & panel selesai animasi sebelum di-pan
+  setTimeout(() => {
+    if (!map) return;
+    const marker = aduanMarkers[idx];
+    if (!marker) return;
+    map.setView(marker.getLatLng(), 15);
+    marker.openPopup();
+    document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, belumTerbuka ? 500 : 150);
+}
+
+/* =========================================================
+   PETA LEAFLET
+   ========================================================= */
+let map, saluranLayer, aduanLayer;
+let aduanMarkers = []; // indeksnya sejajar dengan ADUAN_DATA, dipakai tombol "Lihat di peta"
+
+function initMap(){
+  map = L.map('map', { scrollWheelZoom: false }).setView([-2.881, 112.935], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  saluranLayer = L.layerGroup();
+  aduanLayer = L.layerGroup();
+
+  buildSaluranLayer();
+  buildAduanLayer();
+
+  saluranLayer.addTo(map);
+  aduanLayer.addTo(map);
+
+  document.getElementById('toggleSaluran').addEventListener('change', (e) => {
+    if (e.target.checked) map.addLayer(saluranLayer); else map.removeLayer(saluranLayer);
+  });
+  document.getElementById('toggleAduan').addEventListener('change', (e) => {
+    if (e.target.checked) map.addLayer(aduanLayer); else map.removeLayer(aduanLayer);
+  });
+}
+
+function buildSaluranLayer(){
+  SALURAN_DATA.forEach(feat => {
+    const isPrimer = feat.tipe === 'Saluran Primer';
+    // Leaflet tidak baca CSS var() langsung, jadi pakai nilai hex yang sama persis dengan token warna di CSS
+    const style = {
+      color: isPrimer ? '#124B60' : '#8FBFCE',
+      weight: isPrimer ? 4 : 2,
+      opacity: isPrimer ? 0.9 : 0.75
+    };
+
+    feat.lines.forEach(line => {
+      const poly = L.polyline(line, style);
+      const panjangFmt = feat.panjang.toLocaleString('id-ID');
+      poly.bindPopup(`
+        <div class="popup">
+          <span class="popup__kategori popup__kategori--saluran">${isPrimer ? 'Primer' : 'Sekunder'}</span>
+          <h4>${feat.name}</h4>
+          <p>${feat.dir}</p>
+          <p class="popup__meta">Panjang segmen: ${panjangFmt} m</p>
+        </div>
+      `);
+      saluranLayer.addLayer(poly);
+    });
+  });
+}
+
+function buildAduanLayer(){
+  aduanMarkers = new Array(ADUAN_DATA.length).fill(null);
+
+  ADUAN_DATA.forEach((item, idx) => {
+    if (!item.koordinat) return;
+    const coord = Array.isArray(item.koordinat) ? item.koordinat : [item.koordinat.lat, item.koordinat.lng];
+    if (coord.some(n => n === null || n === undefined || isNaN(n))) return;
+
+    const isUsulan = item.kategori === 'Usulan Kegiatan';
+    const color = isUsulan ? '#A9672E' : '#B23A2E';
+
+    const marker = L.circleMarker(coord, {
+      radius: 8,
+      color: '#fff',
+      weight: 2,
+      fillColor: color,
+      fillOpacity: 0.95
+    });
+
+    marker.bindPopup(buildAduanPopupHTML(item, isUsulan));
+    aduanLayer.addLayer(marker);
+    aduanMarkers[idx] = marker;
+  });
+}
+
+function buildAduanPopupHTML(item, isUsulan){
+  const fotoHtml = item.foto
+    ? `<img class="popup__photo" src="${item.foto}" alt="Foto lokasi"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+       <div class="popup__photo-fallback" style="display:none;">Foto tidak dapat dimuat</div>`
+    : `<div class="popup__photo-fallback" style="display:flex;">Tidak ada foto</div>`;
+
+  let detailHtml = `<p>${item.deskripsi ?? ''}</p>`;
+  if (item.urgensi){
+    detailHtml += `<p class="popup__meta">Urgensi: ${item.urgensi}</p>`;
+  }
+  if (isUsulan){
+    detailHtml += `<p class="popup__meta">Dimensi: L ${item.lebar ?? '—'} m &times; H ${item.kedalaman ?? '—'} m</p>`;
+    if (item.saluran) detailHtml += `<p class="popup__meta">Lokasi: ${item.saluran}, ${item.desa ?? ''}</p>`;
+  }
+  if (item.status){
+    detailHtml += `<p class="popup__meta">Status: ${item.status}</p>`;
+  }
+
+  return `
+    <div class="popup">
+      <span class="popup__kategori ${isUsulan ? 'popup__kategori--usulan' : 'popup__kategori--aduan'}">${item.kategori}</span>
+      ${fotoHtml}
+      ${detailHtml}
+    </div>
+  `;
+}
+
+/* =========================================================
+   MONITORING INFRASTRUKTUR IRIGASI (progres kegiatan)
+   ========================================================= */
+function statusBadgeClass(status){
+  const map = { 'Proses': 'badge--proses', 'Selesai': 'badge--selesai', 'Monitoring': 'badge--pemantauan', 'Berjalan': 'badge--berjalan' };
+  return map[status] || 'badge--neutral';
+}
+function statusFillColor(status){
+  const map = { 'Proses': 'var(--canal)', 'Selesai': 'var(--lumut)', 'Monitoring': 'var(--lumpur)', 'Berjalan': 'var(--canal)' };
+  return map[status] || 'var(--muted)';
+}
+
+/* Status validasi laporan warga: Baru / Diproses / Selesai (sesuai kolom
+   "Validasi Laporan" di sheet Form Responses 2) */
+function statusLaporanBadgeClass(status){
+  const map = { 'Baru': 'badge--baru', 'Diproses': 'badge--diproses', 'Selesai': 'badge--selesai' };
+  return map[status] || 'badge--neutral';
+}
+function kategoriLaporanBadgeClass(kategori){
+  return kategori === 'Usulan Kegiatan' ? 'badge--kat-usulan' : 'badge--kat-aduan';
+}
+function koordinatValid(item){
+  if (!item.koordinat) return false;
+  const coord = Array.isArray(item.koordinat) ? item.koordinat : [item.koordinat.lat, item.koordinat.lng];
+  return coord.length === 2 && coord.every(n => n !== null && n !== undefined && !isNaN(n));
+}
+
+/* =========================================================
+   KARTU PETA — isi status/progress dari PETA_KEGIATAN
+   ========================================================= */
+function initPetaKegiatan(){
+  const k = PETA_KEGIATAN;
+  const badge = document.getElementById('petaStatusBadge');
+  badge.textContent = k.status;
+  badge.className = `badge ${statusBadgeClass(k.status)}`;
+
+  document.getElementById('petaProgressFill').style.width = `${k.progress}%`;
+  document.getElementById('petaProgressFill').style.background = statusFillColor(k.status);
+  document.getElementById('petaProgressLabel').textContent = `${k.progress}% progress`;
+  document.getElementById('petaTanggalLabel').textContent = k.tanggal ? `Update ${k.tanggal}` : 'Belum ada update';
+}
+
+function initMonitoring(){
+  const container = document.getElementById('kegiatanList');
+  container.innerHTML = DATA_MONITORING.map(k => `
+    <div class="kegiatan-item">
+      <div class="kegiatan-item__head">
+        <span class="kegiatan-item__nama">${k.nama}</span>
+        <span class="badge ${statusBadgeClass(k.status)}">${k.status}</span>
+      </div>
+      <div class="kegiatan-item__track">
+        <div class="kegiatan-item__fill" style="width:${k.progress}%; background:${statusFillColor(k.status)}"></div>
+      </div>
+      <div class="kegiatan-item__meta">
+        <span>${k.progress}% progress</span>
+        <span>${k.tanggal ? 'Update ' + k.tanggal : 'Belum ada update'}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* =========================================================
+   FOKUS IRIS
+   ========================================================= */
+function initFokusIris(){
+  const container = document.getElementById('fokusItems');
+  container.innerHTML = FOKUS_IRIS.map(f => `
+    <div class="fokus-item">
+      <p class="fokus-item__judul">${f.judul}</p>
+      <p class="fokus-item__desc">${f.desc}</p>
+    </div>
+  `).join('');
+}
+
+/* =========================================================
+   DASHBOARD ANALYTICS (sinkronisasi) -- kartu gelap
+   ========================================================= */
+function initAnalytics(){
+  document.getElementById('analyticsValueUtama').innerHTML = `${ANALYTICS_DATA.sinkronisasi ?? '—'}<span class="unit">%</span>`;
+
+  const rincian = [
+    { label: 'Data Jaringan', value: ANALYTICS_DATA.dataJaringan },
+    { label: 'Pelaporan Lapangan', value: ANALYTICS_DATA.pelaporanLapangan },
+    { label: 'Validasi Data', value: ANALYTICS_DATA.validasiData }
+  ];
+
+  const container = document.getElementById('analyticsBars');
+  container.innerHTML = rincian.map(d => `
+    <div>
+      <div class="analytics-card__bar-label"><span>${d.label}</span><span>${d.value ?? '—'}%</span></div>
+      <div class="analytics-card__bar-track">
+        <div class="analytics-card__bar-fill" style="width:${d.value ?? 0}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* =========================================================
+   TABEL DIR TERDIGITALISASI (dengan drill-down per saluran)
+   ========================================================= */
+function initTabelDIR(){
+  const rows = Object.entries(DIR_STATS)
+    .map(([nama, s]) => ({ nama, ...s }))
+    .sort((a, b) => b.total_len - a.total_len);
+
+  document.getElementById('countSaluran').textContent = `(${SALURAN_DATA.length} segmen)`;
+
+  const tbody = document.getElementById('dirTableBody');
+  tbody.innerHTML = rows.map((r, idx) => {
+    const detailId = `dirDetail-${idx}`;
+    return `
+      <tr class="dir-row" data-target="${detailId}">
+        <td class="td-nama">${titleCase(r.nama)}<span class="row-caret">&#9656;</span></td>
+        <td>${r.segments}</td>
+        <td>${r.primer}</td>
+        <td>${r.sekunder}</td>
+        <td>${r.total_len.toLocaleString('id-ID')} m</td>
+        <td><span class="badge badge--neutral">Menunggu Survei</span></td>
+      </tr>
+      <tr class="dir-detail-row" id="${detailId}" hidden>
+        <td colspan="6">
+          <div class="dir-detail">
+            <table class="sub-table">
+              <thead>
+                <tr><th>Nama Saluran</th><th>Tipe</th><th>Panjang</th></tr>
+              </thead>
+              <tbody>${buildSaluranRowsForDir(r.nama)}</tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Setiap baris DIR bisa dibuka/tutup independen -- boleh beberapa terbuka bersamaan
+  tbody.querySelectorAll('.dir-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const target = document.getElementById(tr.dataset.target);
+      const willOpen = target.hasAttribute('hidden');
+      if (willOpen) target.removeAttribute('hidden'); else target.setAttribute('hidden', '');
+      tr.classList.toggle('is-open', willOpen);
+    });
+  });
+}
+
+function buildSaluranRowsForDir(namaDir){
+  return SALURAN_DATA
+    .filter(f => f.dir === namaDir)
+    .map(f => `
+      <tr>
+        <td>${f.name}</td>
+        <td>${f.tipe === 'Saluran Primer' ? 'Primer' : 'Sekunder'}</td>
+        <td>${f.panjang.toLocaleString('id-ID')} m</td>
+      </tr>
+    `).join('');
+}
+
+/* =========================================================
+   TABEL LAPORAN WARGA (Aduan &amp; Usulan digabung)
+   ========================================================= */
+function initTabelLaporan(){
+  const tbody = document.getElementById('laporanTableBody');
+
+  if (!ADUAN_DATA.length){
+    tbody.innerHTML = `<tr><td colspan="6" style="white-space:normal;">Belum ada laporan masuk.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = ADUAN_DATA.map((item, idx) => {
+    const kategoriPendek = item.kategori === 'Usulan Kegiatan' ? 'Usulan' : 'Aduan';
+    const lokasi = [item.kecamatan, item.desa].filter(Boolean).join(', ') || '—';
+    const statusText = item.status || 'Baru';
+    const adaKoordinat = koordinatValid(item);
+
+    return `
+      <tr>
+        <td><span class="badge ${kategoriLaporanBadgeClass(item.kategori)}">${kategoriPendek}</span></td>
+        <td class="td-desc-laporan">${item.deskripsi ?? '—'}</td>
+        <td>${lokasi}</td>
+        <td>${item.saluran ?? '—'}</td>
+        <td><span class="badge ${statusLaporanBadgeClass(statusText)}">${statusText}</span></td>
+        <td>${adaKoordinat
+          ? `<button type="button" class="btn-lihat-peta" data-idx="${idx}">Lihat di peta</button>`
+          : `<span class="table-footnote" style="margin:0;">Tanpa titik lokasi</span>`}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.querySelectorAll('.btn-lihat-peta').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bukaPetaDanFokusLaporan(Number(btn.dataset.idx));
+    });
+  });
+}
+
+function titleCase(str){
+  return str.split(' ').map(w =>
+    w.length <= 4 && w === w.toUpperCase() ? w : (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+  ).join(' ').replace('D.i.r.', 'D.I.R.');
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+async function initApp(){
+  try {
+    const geoRes = await fetch(GEOJSON_URL);
+    const geojson = await geoRes.json();
+    buildSaluranDataFromGeoJSON(geojson);
+  } catch (err){
+    console.error('Gagal memuat GeoJSON saluran:', err);
+  }
+
+  const dinamis = await loadDataDinamis();
+  SUMBER_DATA = dinamis.sumber;
+  KARTU_RINGKASAN = dinamis.kartuRingkasan;
+  DATA_MONITORING = dinamis.dataMonitoring;
+  PETA_KEGIATAN = dinamis.petaKegiatan;
+  ANALYTICS_DATA = dinamis.analytics;
+  ADUAN_DATA = dinamis.aduanUsulan;
+
+  initKartuRingkasan();
+  initMapToggle();
+  initPetaKegiatan();
+  initDirToggle();
+  initLaporanToggle();
+  initMonitoring();
+  initFokusIris();
+  initAnalytics();
+  initTabelDIR();
+  initTabelLaporan();
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
+
+</script>
+</body>
+</html>
