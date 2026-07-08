@@ -635,8 +635,8 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 
       <button class="card card--canal card--clickable" type="button" id="dirToggleBtn" aria-expanded="false" aria-controls="dirPanel">
         <p class="card__eyebrow">Total DIR</p>
-        <p class="card__value" id="totalDIRValue">82</p>
-        <p class="card__desc">Daerah Irigasi Rawa terdaftar &mdash; 6 DIR pilot ditampilkan pada dashboard ini</p>
+        <p class="card__value" id="totalDIRValue">82<span class="unit">D.I.R.</span></p>
+        <p class="card__desc"><strong id="totalDIRLabel">Daerah Irigasi Rawa</strong> &middot; <span id="totalDILine">1 Daerah Irigasi (D.I.)</span></p>
         <span class="card__action">Lihat daftar DIR <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
       </button>
 
@@ -646,11 +646,12 @@ a:focus-visible, button:focus-visible, input:focus-visible{
         <p class="card__desc">Rata-rata seluruh jaringan &middot; kategori <strong id="kondisiKategoriGlobal">—</strong></p>
       </article>
 
-      <article class="card card--lumpur">
+      <button class="card card--lumpur card--clickable" type="button" id="luasLayananToggleBtn" aria-expanded="false" aria-controls="luasLayananPanel">
         <p class="card__eyebrow">Luas Layanan</p>
         <p class="card__value" id="luasLayananValue">14.560<span class="unit">Ha</span></p>
-        <p class="card__desc">Total area layanan irigasi rawa di seluruh DIR</p>
-      </article>
+        <p class="card__desc">Total area layanan irigasi rawa &amp; irigasi di Kotim</p>
+        <span class="card__action">Lihat rincian per DIR <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
+      </button>
 
       <button class="card card--karat card--clickable" type="button" id="laporanToggleBtn" aria-expanded="false" aria-controls="laporanPanel">
         <p class="card__eyebrow">Laporan Masuk</p>
@@ -680,6 +681,23 @@ a:focus-visible, button:focus-visible, input:focus-visible{
         </table>
       </div>
       <p class="table-footnote">Kondisi akan tampil otomatis begitu kolom Kondisi_Persen di Data_Master_DIR terisi oleh admin.</p>
+    </div>
+
+    <div class="peta-panel" id="luasLayananPanel">
+      <h2 class="section-title">Rincian Luas Layanan per DIR</h2>
+      <p class="section-intro">Luas potensial dan luas fungsional tiap Daerah Irigasi Rawa (DIR), berdasarkan hasil survei/pengukuran lapangan.</p>
+      <div class="table-wrap">
+        <table id="luasLayananTable">
+          <thead>
+            <tr>
+              <th>Nama DIR</th>
+              <th>Luas Potensial (Ha)</th>
+              <th>Luas Fungsional (Ha)</th>
+            </tr>
+          </thead>
+          <tbody id="luasLayananTableBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="peta-panel" id="laporanPanel">
@@ -833,7 +851,20 @@ function getKategori(persen){
    Apps Script selesai di-deploy. Nilainya sengaja ditandai
    sebagai "Contoh" di tampilan (lihat initTanggalData).
    ========================================================= */
-const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 65, luasLayananHa: 14560, laporanMasuk: 2 };
+const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 65, luasLayananHa: 20296, laporanMasuk: 2 };
+
+/* Kartu "Total DIR": jumlah Daerah Irigasi Rawa (D.I.R.) vs Daerah
+   Irigasi biasa (D.I.), sumber sheet Irigasi_Umum. */
+const IRIGASI_UMUM_FALLBACK = [
+  { saluran: "Daerah Irigasi Rawa", singkatan: "D.I.R.", jumlah: 82, luasHa: 19696 },
+  { saluran: "Daerah Irigasi", singkatan: "D.I.", jumlah: 1, luasHa: 600 }
+];
+
+/* Panel kartu "Luas Layanan": rincian per DIR, sumber sheet Luas_Layanan. */
+const LUAS_LAYANAN_FALLBACK = [
+  { namaDir: "D. I. R. Samuda Besar", luasPotensial: 424.91, luasFungsional: 140.22 },
+  { namaDir: "D. I. R. Samuda Kecil", luasPotensial: 630.48, luasFungsional: 220.07 }
+];
 
 const DATA_MONITORING_FALLBACK = [
   { nama: "Pemeliharaan Saluran", status: "Proses", progress: 68, tanggal: "2 Juli 2026" },
@@ -927,7 +958,9 @@ async function loadDataDinamis(){
       dataMonitoring: DATA_MONITORING_FALLBACK,
       petaKegiatan: PETA_KEGIATAN_FALLBACK,
       analytics: ANALYTICS_FALLBACK,
-      aduanUsulan: ADUAN_FALLBACK
+      aduanUsulan: ADUAN_FALLBACK,
+      irigasiUmum: IRIGASI_UMUM_FALLBACK,
+      luasLayananDetail: LUAS_LAYANAN_FALLBACK
     };
   }
   try {
@@ -941,6 +974,8 @@ async function loadDataDinamis(){
     json.petaKegiatan = json.petaKegiatan || PETA_KEGIATAN_FALLBACK;
     json.analytics = json.analytics || ANALYTICS_FALLBACK;
     json.aduanUsulan = json.aduanUsulan || [];
+    json.irigasiUmum = (json.irigasiUmum && json.irigasiUmum.length) ? json.irigasiUmum : IRIGASI_UMUM_FALLBACK;
+    json.luasLayananDetail = (json.luasLayananDetail && json.luasLayananDetail.length) ? json.luasLayananDetail : LUAS_LAYANAN_FALLBACK;
     return json;
   } catch (err){
     console.error('Gagal memuat data dari Apps Script, memakai data contoh:', err);
@@ -950,7 +985,9 @@ async function loadDataDinamis(){
       dataMonitoring: DATA_MONITORING_FALLBACK,
       petaKegiatan: PETA_KEGIATAN_FALLBACK,
       analytics: ANALYTICS_FALLBACK,
-      aduanUsulan: ADUAN_FALLBACK
+      aduanUsulan: ADUAN_FALLBACK,
+      irigasiUmum: IRIGASI_UMUM_FALLBACK,
+      luasLayananDetail: LUAS_LAYANAN_FALLBACK
     };
   }
 }
@@ -961,6 +998,8 @@ let DATA_MONITORING = DATA_MONITORING_FALLBACK;
 let PETA_KEGIATAN = PETA_KEGIATAN_FALLBACK;
 let ANALYTICS_DATA = ANALYTICS_FALLBACK;
 let ADUAN_DATA = ADUAN_FALLBACK;
+let IRIGASI_UMUM_DATA = IRIGASI_UMUM_FALLBACK;
+let LUAS_LAYANAN_DATA = LUAS_LAYANAN_FALLBACK;
 let SUMBER_DATA = 'contoh';
 
 /* =========================================================
@@ -971,7 +1010,19 @@ function formatRibuan(n){
 }
 
 function initKartuRingkasan(){
-  document.getElementById('totalDIRValue').textContent = formatRibuan(KARTU_RINGKASAN.totalJaringan);
+  // Kartu "Total DIR": angka utama & baris kedua bersumber dari sheet
+  // Irigasi_Umum (jumlah D.I.R. vs D.I.). Fallback ke totalJaringan lama
+  // kalau sheet Irigasi_Umum belum tersedia/kosong.
+  const dirEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.R.');
+  const diEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.');
+  const jumlahDIR = dirEntry ? dirEntry.jumlah : KARTU_RINGKASAN.totalJaringan;
+  const jumlahDI = diEntry ? diEntry.jumlah : null;
+
+  document.getElementById('totalDIRValue').innerHTML =
+    `${formatRibuan(jumlahDIR)}<span class="unit">D.I.R.</span>`;
+  document.getElementById('totalDIRLabel').textContent = dirEntry ? dirEntry.saluran : 'Daerah Irigasi Rawa';
+  document.getElementById('totalDILine').textContent =
+    jumlahDI != null ? `${formatRibuan(jumlahDI)} Daerah Irigasi (D.I.)` : '—';
 
   const kondisiPersen = KARTU_RINGKASAN.kondisiSaluran;
   document.getElementById('kondisiSaluranValue').innerHTML =
@@ -1028,6 +1079,36 @@ function initDirToggle(){
     const isOpen = panel.classList.toggle('is-open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
   });
+}
+
+/* =========================================================
+   TOGGLE PANEL RINCIAN LUAS LAYANAN (kartu "Luas Layanan")
+   ========================================================= */
+function initLuasLayananToggle(){
+  const btn = document.getElementById('luasLayananToggleBtn');
+  const panel = document.getElementById('luasLayananPanel');
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+}
+
+function initTabelLuasLayanan(){
+  const tbody = document.getElementById('luasLayananTableBody');
+
+  if (!LUAS_LAYANAN_DATA.length){
+    tbody.innerHTML = `<tr><td colspan="3" style="white-space:normal;">Belum ada data rincian luas layanan.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = LUAS_LAYANAN_DATA.map(d => `
+    <tr>
+      <td>${d.namaDir ?? '—'}</td>
+      <td>${d.luasPotensial != null ? Number(d.luasPotensial).toLocaleString('id-ID') : '—'}</td>
+      <td>${d.luasFungsional != null ? Number(d.luasFungsional).toLocaleString('id-ID') : '—'}</td>
+    </tr>
+  `).join('');
 }
 
 /* =========================================================
@@ -1393,16 +1474,20 @@ async function initApp(){
   PETA_KEGIATAN = dinamis.petaKegiatan;
   ANALYTICS_DATA = dinamis.analytics;
   ADUAN_DATA = dinamis.aduanUsulan;
+  IRIGASI_UMUM_DATA = dinamis.irigasiUmum;
+  LUAS_LAYANAN_DATA = dinamis.luasLayananDetail;
 
   initKartuRingkasan();
   initMapToggle();
   initPetaKegiatan();
   initDirToggle();
+  initLuasLayananToggle();
   initLaporanToggle();
   initMonitoring();
   initFokusIris();
   initAnalytics();
   initTabelDIR();
+  initTabelLuasLayanan();
   initTabelLaporan();
 }
 
