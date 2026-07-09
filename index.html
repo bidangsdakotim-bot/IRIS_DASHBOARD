@@ -864,8 +864,8 @@ const KARTU_RINGKASAN_FALLBACK = { totalJaringan: 82, kondisiSaluran: 66.39, sta
 /* Kartu "Total DIR": jumlah Daerah Irigasi Rawa (D.I.R.) vs Daerah
    Irigasi biasa (D.I.), sumber sheet Irigasi_Umum. */
 const IRIGASI_UMUM_FALLBACK = [
-  { saluran: "Daerah Irigasi Rawa", singkatan: "D.I.R.", jumlah: 82, luasHa: 19696 },
-  { saluran: "Daerah Irigasi", singkatan: "D.I.", jumlah: 1, luasHa: 600 }
+  { saluran: "Daerah Irigasi Rawa", singkatan: "D. I. R.", jumlah: 82, luasHa: 19696 },
+  { saluran: "Daerah Irigasi", singkatan: "D. I.", jumlah: 1, luasHa: 600 }
 ];
 
 /* Panel kartu "Luas Layanan": rincian per DIR, sumber sheet Luas_Layanan. */
@@ -1021,8 +1021,13 @@ function initKartuRingkasan(){
   // Kartu "Total DIR": angka utama & baris kedua bersumber dari sheet
   // Irigasi_Umum (jumlah D.I.R. vs D.I.). Fallback ke totalJaringan lama
   // kalau sheet Irigasi_Umum belum tersedia/kosong.
-  const dirEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.R.');
-  const diEntry = IRIGASI_UMUM_DATA.find(x => x.singkatan === 'D.I.');
+  // Catatan: pencocokan SENGAJA lewat kata "rawa" pada kolom `saluran`,
+  // BUKAN via `singkatan` -- karena penulisan singkatan di sheet asli
+  // ternyata pakai spasi ("D. I. R.", "D. I."), beda dari yang dipakai di
+  // data contoh/fallback ("D.I.R.", "D.I."), sehingga perbandingan string
+  // persis (===) pada singkatan gagal cocok untuk data live.
+  const dirEntry = IRIGASI_UMUM_DATA.find(x => (x.saluran || '').toLowerCase().includes('rawa'));
+  const diEntry = IRIGASI_UMUM_DATA.find(x => (x.saluran || '').toLowerCase().includes('irigasi') && !(x.saluran || '').toLowerCase().includes('rawa'));
   const jumlahDIR = dirEntry ? dirEntry.jumlah : (KARTU_RINGKASAN.totalJaringan ?? 0);
   const jumlahDI = diEntry ? diEntry.jumlah : null;
   const totalGabungan = jumlahDIR + (jumlahDI ?? 0);
