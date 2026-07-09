@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -1021,6 +1022,9 @@ function initKartuRingkasan(){
   // Kartu "Total DIR": angka utama & baris kedua bersumber dari sheet
   // Irigasi_Umum (jumlah D.I.R. vs D.I.). Fallback ke totalJaringan lama
   // kalau sheet Irigasi_Umum belum tersedia/kosong.
+  // Kartu "Total DIR": angka utama & baris kedua bersumber dari sheet
+  // Irigasi_Umum (jumlah D.I.R. vs D.I.). Fallback ke totalJaringan lama
+  // kalau sheet Irigasi_Umum belum tersedia/kosong.
   // Catatan: pencocokan SENGAJA lewat kata "rawa" pada kolom `saluran`,
   // BUKAN via `singkatan` -- karena penulisan singkatan di sheet asli
   // ternyata pakai spasi ("D. I. R.", "D. I."), beda dari yang dipakai di
@@ -1244,6 +1248,13 @@ function buildAduanLayer(){
   });
 }
 
+function formatKoordinatPopup_(item){
+  if (!item.koordinat) return null;
+  const coord = Array.isArray(item.koordinat) ? item.koordinat : [item.koordinat.lat, item.koordinat.lng];
+  if (coord.length !== 2 || coord.some(n => n === null || n === undefined || isNaN(n))) return null;
+  return `${Number(coord[0]).toFixed(6)}, ${Number(coord[1]).toFixed(6)}`;
+}
+
 function buildAduanPopupHTML(item, isUsulan){
   const fotoHtml = item.foto
     ? `<img class="popup__photo" src="${item.foto}" alt="Foto lokasi"
@@ -1261,6 +1272,10 @@ function buildAduanPopupHTML(item, isUsulan){
   }
   if (item.status){
     detailHtml += `<p class="popup__meta">Status: ${item.status}</p>`;
+  }
+  const koordinatText = formatKoordinatPopup_(item);
+  if (koordinatText){
+    detailHtml += `<p class="popup__meta">Koordinat: ${koordinatText}</p>`;
   }
 
   return `
