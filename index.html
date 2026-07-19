@@ -174,6 +174,7 @@ button.card{
 }
 button.card:hover{background:#F7FAF9;}
 button.card.card--karat{border-top-color:var(--karat);}
+button.card.card--dynamic-kondisi{border-top-color:var(--canal-dark);}
 .card__action{
   display:inline-flex;
   align-items:center;
@@ -327,6 +328,29 @@ button.card[aria-expanded="true"] .card__chevron{transform:rotate(180deg);}
   border:1px solid var(--line);
   background:#DCE7E4;
 }
+
+#mapSurvei{
+  height:460px;
+  width:100%;
+  border-radius:var(--radius);
+  border:1px solid var(--line);
+  background:#DCE7E4;
+}
+
+.filter-select{
+  font-family:var(--font-body);
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink);
+  background:var(--paper-raised);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:7px 14px;
+  cursor:pointer;
+}
+.filter-select:focus-visible{outline:2px solid var(--canal);outline-offset:2px;}
+
+.legend-dot--survei{background:var(--canal-dark);}
 
 .map-legend{
   display:flex;
@@ -670,11 +694,12 @@ a:focus-visible, button:focus-visible, input:focus-visible{
         <span class="card__action">Lihat daftar DIR <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
       </button>
 
-      <article class="card card--dynamic-kondisi">
+      <button class="card card--dynamic-kondisi card--clickable" type="button" id="kondisiSaluranToggleBtn" aria-expanded="false" aria-controls="kondisiSaluranPanel">
         <p class="card__eyebrow">Kondisi Saluran</p>
         <p class="card__value" id="kondisiSaluranValue">65<span class="unit">%</span></p>
         <p class="card__desc">Luas daerah irigasi kewenangan dalam kondisi <strong id="kondisiKategoriGlobal">—</strong></p>
-      </article>
+        <span class="card__action">Lihat peta kondisi saluran <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
+      </button>
 
       <button class="card card--lumpur card--clickable" type="button" id="luasLayananToggleBtn" aria-expanded="false" aria-controls="luasLayananPanel">
         <p class="card__eyebrow">Luas Layanan</p>
@@ -711,6 +736,26 @@ a:focus-visible, button:focus-visible, input:focus-visible{
         </table>
       </div>
       <p class="table-footnote">Rincian kondisi (Baik / Rusak Ringan / Rusak Berat) mengikuti data terbaru pada kolom Kondisi_Persen di sheet Data_Master_DIR.</p>
+    </div>
+
+    <div class="peta-panel" id="kondisiSaluranPanel">
+      <h2 class="section-title">Peta Kondisi Saluran (Survei Lapangan)</h2>
+      <p class="section-intro">Titik hasil survei kondisi saluran di lapangan, berasal dari sheet Survei Irigasi (Google Sheets). Setiap titik memuat DIR, nama saluran, STA, dan foto dokumentasi. Data bertambah bertahap sesuai progres survei.</p>
+
+      <div class="map-controls">
+        <label class="layer-chip layer-chip--canal" for="filterSurveiDIR" style="cursor:default;">
+          <span class="layer-chip__dot"></span>
+          Filter DIR
+        </label>
+        <select id="filterSurveiDIR" class="filter-select">
+          <option value="">Semua DIR</option>
+        </select>
+        <span class="layer-chip__count" id="countSurvei">(— titik)</span>
+      </div>
+
+      <div id="mapSurvei"></div>
+
+      <p class="map-caption">Koordinat titik survei hasil input lapangan; sebagian titik mungkin belum lengkap/presisi sampai proses survei selesai.</p>
     </div>
 
     <div class="peta-panel" id="luasLayananPanel">
@@ -956,6 +1001,13 @@ const ADUAN_FALLBACK = [
   }
 ];
 
+/* Panel kartu "Kondisi Saluran": titik hasil survei lapangan,
+   sumber sheet Survei Irigasi. Koordinat & foto belum tentu
+   lengkap di semua baris karena survei berjalan bertahap. */
+const SURVEI_IRIGASI_FALLBACK = [
+  { dir: "Samuda Besar", namaSaluran: "Primer Samuda Besar", sta: "0 + 000", koordinat: { lat: -2.8793, lng: 109.9969 }, foto: null }
+];
+
 /* =========================================================
    MEMBANGUN SALURAN_DATA & DIR_STATS DARI GEOJSON
    GeoJSON pakai urutan koordinat [lng, lat, elevasi] sesuai
@@ -1073,7 +1125,8 @@ async function loadDataDinamis(){
       aduanUsulan: ADUAN_FALLBACK,
       irigasiUmum: IRIGASI_UMUM_FALLBACK,
       luasLayananDetail: LUAS_LAYANAN_FALLBACK,
-      dataMasterDIR: DATA_MASTER_DIR_FALLBACK
+      dataMasterDIR: DATA_MASTER_DIR_FALLBACK,
+      surveiIrigasi: SURVEI_IRIGASI_FALLBACK
     };
   }
   try {
@@ -1090,6 +1143,7 @@ async function loadDataDinamis(){
     json.irigasiUmum = (json.irigasiUmum && json.irigasiUmum.length) ? json.irigasiUmum : IRIGASI_UMUM_FALLBACK;
     json.luasLayananDetail = (json.luasLayananDetail && json.luasLayananDetail.length) ? json.luasLayananDetail : LUAS_LAYANAN_FALLBACK;
     json.dataMasterDIR = (json.dataMasterDIR && json.dataMasterDIR.length) ? json.dataMasterDIR : DATA_MASTER_DIR_FALLBACK;
+    json.surveiIrigasi = (json.surveiIrigasi && json.surveiIrigasi.length) ? json.surveiIrigasi : SURVEI_IRIGASI_FALLBACK;
     return json;
   } catch (err){
     console.error('Gagal memuat data dari Apps Script, memakai data contoh:', err);
@@ -1102,7 +1156,8 @@ async function loadDataDinamis(){
       aduanUsulan: ADUAN_FALLBACK,
       irigasiUmum: IRIGASI_UMUM_FALLBACK,
       luasLayananDetail: LUAS_LAYANAN_FALLBACK,
-      dataMasterDIR: DATA_MASTER_DIR_FALLBACK
+      dataMasterDIR: DATA_MASTER_DIR_FALLBACK,
+      surveiIrigasi: SURVEI_IRIGASI_FALLBACK
     };
   }
 }
@@ -1116,6 +1171,7 @@ let ADUAN_DATA = ADUAN_FALLBACK;
 let IRIGASI_UMUM_DATA = IRIGASI_UMUM_FALLBACK;
 let LUAS_LAYANAN_DATA = LUAS_LAYANAN_FALLBACK;
 let DATA_MASTER_DIR = DATA_MASTER_DIR_FALLBACK;
+let SURVEI_DATA = SURVEI_IRIGASI_FALLBACK;
 let SUMBER_DATA = 'contoh';
 
 /* =========================================================
@@ -1254,6 +1310,128 @@ function initLaporanToggle(){
   });
 }
 
+/* =========================================================
+   TOGGLE PANEL PETA KONDISI SALURAN (kartu "Kondisi Saluran")
+   Peta Leaflet TERPISAH dari peta "Digitalisasi Peta Irigasi",
+   khusus titik hasil survei lapangan (sheet Survei Irigasi).
+   Lazy-init sama seperti initMapToggle() -- peta baru dibuat
+   saat panel pertama kali dibuka, supaya tidak membebani halaman
+   kalau panel tidak pernah dibuka.
+   ========================================================= */
+let mapSurvei, surveiLayer;
+let mapSurveiInitialized = false;
+
+function initKondisiSaluranToggle(){
+  const btn = document.getElementById('kondisiSaluranToggleBtn');
+  const panel = document.getElementById('kondisiSaluranPanel');
+
+  btn.addEventListener('click', () => {
+    const isOpen = panel.classList.toggle('is-open');
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen && !mapSurveiInitialized){
+      mapSurveiInitialized = true;
+      setTimeout(() => {
+        initMapSurvei();
+        mapSurvei.invalidateSize();
+      }, 50);
+    } else if (isOpen && mapSurveiInitialized){
+      setTimeout(() => mapSurvei.invalidateSize(), 400);
+    }
+  });
+}
+
+function initMapSurvei(){
+  mapSurvei = L.map('mapSurvei', { scrollWheelZoom: false }).setView([-2.881, 112.935], 12);
+
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+  const satelitLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+  });
+
+  osmLayer.addTo(mapSurvei);
+  L.control.layers({ 'Peta Jalan': osmLayer, 'Citra Satelit': satelitLayer }).addTo(mapSurvei);
+
+  surveiLayer = L.layerGroup().addTo(mapSurvei);
+
+  isiFilterDIRSurvei();
+  buildSurveiLayer();
+
+  document.getElementById('filterSurveiDIR').addEventListener('change', (e) => {
+    buildSurveiLayer(e.target.value);
+  });
+}
+
+function isiFilterDIRSurvei(){
+  const select = document.getElementById('filterSurveiDIR');
+  const dirUnik = [...new Set(SURVEI_DATA.map(d => d.dir).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'id'));
+
+  select.innerHTML = '<option value="">Semua DIR</option>' +
+    dirUnik.map(dir => `<option value="${dir}">${dir}</option>`).join('');
+}
+
+function buildSurveiLayer(filterDir){
+  surveiLayer.clearLayers();
+
+  const dataTerfilter = filterDir
+    ? SURVEI_DATA.filter(d => d.dir === filterDir)
+    : SURVEI_DATA;
+
+  let titikValid = 0;
+  const bounds = [];
+
+  dataTerfilter.forEach(item => {
+    if (!item.koordinat) return;
+    const coord = [item.koordinat.lat, item.koordinat.lng];
+    if (coord.some(n => n === null || n === undefined || isNaN(n))) return;
+
+    const marker = L.circleMarker(coord, {
+      radius: 8,
+      color: '#fff',
+      weight: 2,
+      fillColor: '#124B60',
+      fillOpacity: 0.95
+    });
+    marker.bindPopup(buildSurveiPopupHTML(item));
+    surveiLayer.addLayer(marker);
+    bounds.push(coord);
+    titikValid++;
+  });
+
+  document.getElementById('countSurvei').textContent = `(${titikValid} titik)`;
+
+  if (bounds.length){
+    mapSurvei.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+  } else {
+    mapSurvei.setView([-2.881, 112.935], 12);
+  }
+}
+
+function buildSurveiPopupHTML(item){
+  const fotoHtml = item.foto
+    ? `<img class="popup__photo" src="${item.foto}" alt="Foto lokasi survei"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+       <div class="popup__photo-fallback" style="display:none;">Foto tidak dapat dimuat</div>`
+    : `<div class="popup__photo-fallback" style="display:flex;">Belum ada foto</div>`;
+
+  let detailHtml = '';
+  if (item.namaSaluran) detailHtml += `<p>${item.namaSaluran}</p>`;
+  if (item.sta) detailHtml += `<p class="popup__meta">STA: ${item.sta}</p>`;
+  const koordinatText = formatKoordinatPopup_(item);
+  if (koordinatText) detailHtml += `<p class="popup__meta">Koordinat: ${koordinatText}</p>`;
+
+  return `
+    <div class="popup">
+      <span class="popup__kategori popup__kategori--saluran">${item.dir ?? '—'}</span>
+      ${fotoHtml}
+      ${detailHtml}
+    </div>
+  `;
+}
+
 /* Buka panel peta (jika belum terbuka) lalu fokuskan ke satu titik laporan */
 function bukaPetaDanFokusLaporan(idx){
   const mapBtn = document.getElementById('mapToggleBtn');
@@ -1282,10 +1460,17 @@ let aduanMarkers = []; // indeksnya sejajar dengan ADUAN_DATA, dipakai tombol "L
 function initMap(){
   map = L.map('map', { scrollWheelZoom: false }).setView([-2.881, 112.935], 12);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+  });
+  const satelitLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+  });
+
+  osmLayer.addTo(map);
+  L.control.layers({ 'Peta Jalan': osmLayer, 'Citra Satelit': satelitLayer }).addTo(map);
 
   saluranLayer = L.layerGroup();
   aduanLayer = L.layerGroup();
@@ -1626,6 +1811,7 @@ async function initApp(){
   IRIGASI_UMUM_DATA = dinamis.irigasiUmum;
   LUAS_LAYANAN_DATA = dinamis.luasLayananDetail;
   DATA_MASTER_DIR = dinamis.dataMasterDIR || [];
+  SURVEI_DATA = dinamis.surveiIrigasi || [];
 
   initKartuRingkasan();
   initMapToggle();
@@ -1633,6 +1819,7 @@ async function initApp(){
   initDirToggle();
   initLuasLayananToggle();
   initLaporanToggle();
+  initKondisiSaluranToggle();
   initMonitoring();
   initFokusIris();
   initAnalytics();
