@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -550,6 +548,11 @@ button.card[aria-expanded="true"] .card__chevron{transform:rotate(180deg);}
 
 /* ---------- Table ---------- */
 .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);}
+/* Panel Luas Layanan datanya terus bertambah -- dibuat scroll
+   internal (bukan andalkan max-height panel yang gampang kepotong
+   kalau baris makin banyak) */
+#luasLayananPanel .table-wrap{max-height:520px;overflow-y:auto;}
+#luasLayananPanel .table-wrap thead th{position:sticky;top:0;background:var(--ink);z-index:1;}
 table{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--paper-raised);}
 thead tr{background:var(--ink);}
 th{
@@ -580,6 +583,24 @@ tbody tr:last-child td{border-bottom:none;}
   font-size:12px;
   color:var(--muted);
   font-style:italic;
+}
+
+/* ---------- Badge kondisi 3-warna (Baik/Rusak Ringan/Rusak Berat) ---------- */
+.kondisi-rincian{display:inline-flex;align-items:center;flex-wrap:wrap;gap:2px 10px;}
+.kondisi-mini{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  font-family:var(--font-mono);
+  font-size:11.5px;
+  color:var(--ink);
+}
+.kondisi-mini i{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  flex-shrink:0;
 }
 
 /* ---------- Footer ---------- */
@@ -623,11 +644,11 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 
 <div class="masthead">
   <div class="masthead__inner">
-    <p class="eyebrow">Pemerintah Kabupaten Kotawaringin Timur &middot; Dinas Pekerjaan Umum &mdash; Bidang Sumber Daya Air</p>
+    <p class="eyebrow">Pemerintah Kabupaten Kotawaringin Timur &middot; Dinas Sumber Daya Air, Bina Marga, Bina Konstruksi, Perumahan Rakyat, dan Kawasan Permukiman &mdash; Bidang Sumber Daya Air</p>
     <h1 class="masthead__title">Dashboard IRIS</h1>
-    <p class="masthead__subtitle">Pemantauan Jaringan Irigasi Rawa &mdash; Prototipe Internal</p>
+    <p class="masthead__subtitle">Pemantauan Jaringan Irigasi Rawa</p>
     <div class="masthead__tags">
-      <span class="tag">Pilot Project: 6 dari 82 DIR</span>
+      <span class="tag" id="tagDIRProgress">DIR Terdata: — dari — DIR</span>
       <span class="tag tag--muted" id="tanggalData">Data per —</span>
     </div>
   </div>
@@ -673,7 +694,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 
     <div class="peta-panel" id="dirPanel">
       <h2 class="section-title">Daftar DIR Terdigitalisasi</h2>
-      <p class="section-intro">Data geometri &amp; panjang saluran berasal dari berkas GeoJSON resmi. Klik salah satu baris DIR untuk melihat daftar saluran di dalamnya. Kondisi saluran menunggu hasil survei per segmen dari admin.</p>
+      <p class="section-intro">Nama DIR, jumlah segmen, panjang, dan kondisi saluran berasal dari sheet Data_Master_DIR (Google Sheets). Peta pada bagian lain halaman ini memakai berkas GeoJSON terpisah, hanya untuk menampilkan geometri saluran. Klik salah satu baris DIR untuk melihat daftar saluran di dalamnya.</p>
       <div class="table-wrap">
         <table id="dirTable">
           <thead>
@@ -689,7 +710,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{
           <tbody id="dirTableBody"></tbody>
         </table>
       </div>
-      <p class="table-footnote">Kondisi akan tampil otomatis begitu kolom Kondisi_Persen di Data_Master_DIR terisi oleh admin.</p>
+      <p class="table-footnote">Rincian kondisi (Baik / Rusak Ringan / Rusak Berat) mengikuti data terbaru pada kolom Kondisi_Persen di sheet Data_Master_DIR.</p>
     </div>
 
     <div class="peta-panel" id="luasLayananPanel">
@@ -813,8 +834,8 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 </main>
 
 <footer class="site-footer">
-  <p>Dashboard IRIS &middot; Prototipe internal &middot; Data pilot 6 DIR &middot; Kabupaten Kotawaringin Timur</p>
-  <p class="site-footer__meta">Sumber data: Google Sheets (internal) &amp; GeoJSON Dinas Pekerjaan Umum</p>
+  <p>Dashboard IRIS &middot; Kabupaten Kotawaringin Timur &middot; Data <span id="footerDIRProgress">— dari — DIR</span></p>
+  <p class="site-footer__meta">Sumber data: Google Sheets &amp; GeoJSON &mdash; Dinas Sumber Daya Air, Bina Marga, Bina Konstruksi, Perumahan Rakyat, dan Kawasan Permukiman</p>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -873,6 +894,18 @@ const IRIGASI_UMUM_FALLBACK = [
 const LUAS_LAYANAN_FALLBACK = [
   { namaDir: "D. I. R. Samuda Besar", luasPotensial: 424.91, luasFungsional: 140.22 },
   { namaDir: "D. I. R. Samuda Kecil", luasPotensial: 630.48, luasFungsional: 220.07 }
+];
+
+/* Tabel "Daftar DIR Terdigitalisasi": SATU-SATUNYA sumber sekarang
+   adalah sheet Data_Master_DIR (per-baris/segmen). GeoJSON hanya
+   dipakai untuk peta, tidak lagi untuk tabel ini. */
+const DATA_MASTER_DIR_FALLBACK = [
+  { namaSaluran: null, namaDIR: "D.I.R. Contoh", tipeSaluran: "Saluran Primer", kecamatan: "Contoh", panjang: 5000,
+    persenBaik: 0.7, persenRusakRingan: 0.2, persenRusakBerat: 0.1,
+    haBaik: 300, haRusakRingan: 85, haRusakBerat: 43, luasHa: 428, tanggalUpdate: null, keterangan: null },
+  { namaSaluran: "Sek. Contoh Kanan", namaDIR: "D.I.R. Contoh", tipeSaluran: "Saluran Sekunder", kecamatan: "Contoh", panjang: 800,
+    persenBaik: 0.7, persenRusakRingan: 0.2, persenRusakBerat: 0.1,
+    haBaik: 300, haRusakRingan: 85, haRusakBerat: 43, luasHa: 428, tanggalUpdate: null, keterangan: null }
 ];
 
 const DATA_MONITORING_FALLBACK = [
@@ -956,6 +989,76 @@ function buildSaluranDataFromGeoJSON(geojson){
 }
 
 /* =========================================================
+   MEMBANGUN STATISTIK PER DIR DARI Data_Master_DIR (SHEET)
+   Sumber untuk tabel "Daftar DIR Terdigitalisasi". Berbeda dari
+   DIR_STATS di atas (yang dari GeoJSON, khusus untuk peta) --
+   fungsi ini yang dipakai tabel supaya datanya ikut sheet, bukan
+   berkas GeoJSON statis.
+   ========================================================= */
+function buildMasterDirStats(rows){
+  const stats = {};
+  (rows || []).forEach(r => {
+    if (!r.namaDIR) return;
+    if (!stats[r.namaDIR]){
+      stats[r.namaDIR] = {
+        segments: 0, primer: 0, sekunder: 0, total_len: 0,
+        persenBaik: r.persenBaik, persenRusakRingan: r.persenRusakRingan, persenRusakBerat: r.persenRusakBerat,
+        luasHa: r.luasHa
+      };
+    }
+    const s = stats[r.namaDIR];
+    s.segments += 1;
+    s.total_len += Number(r.panjang) || 0;
+    if (r.tipeSaluran === 'Saluran Primer') s.primer += 1; else s.sekunder += 1;
+  });
+  return stats;
+}
+
+/* Dipakai bareng oleh initKartuRingkasan (kartu "Total DIR") dan
+   tag/footer progres DIR -- gabungan jumlah D.I.R. + D.I. dari
+   sheet Irigasi_Umum. Dibuat terpisah (bukan reuse variabel lokal
+   initKartuRingkasan) supaya kedua fungsi independen. */
+function getTotalDIRGabungan(){
+  const dirEntry = IRIGASI_UMUM_DATA.find(x => (x.saluran || '').toLowerCase().includes('rawa'));
+  const diEntry = IRIGASI_UMUM_DATA.find(x => (x.saluran || '').toLowerCase().includes('irigasi') && !(x.saluran || '').toLowerCase().includes('rawa'));
+  const jumlahDIR = dirEntry ? (dirEntry.jumlah || 0) : 0;
+  const jumlahDI = diEntry ? (diEntry.jumlah || 0) : 0;
+  return jumlahDIR + jumlahDI;
+}
+
+/* Mengisi tag di masthead & baris footer dengan angka "X dari Y
+   DIR" -- X = jumlah DIR unik di Data_Master_DIR, Y = gabungan
+   D.I.R.+D.I. dari Irigasi_Umum. Dipanggil dari initTabelDIR()
+   setelah MASTER_DIR_STATS terhitung. */
+function updateInfoDIRDinamis(jumlahMasterDIR){
+  const totalGabungan = getTotalDIRGabungan();
+  const teks = `${jumlahMasterDIR} dari ${totalGabungan} DIR`;
+
+  const tag = document.getElementById('tagDIRProgress');
+  if (tag) tag.textContent = `DIR Terdata: ${teks}`;
+
+  const footerSpan = document.getElementById('footerDIRProgress');
+  if (footerSpan) footerSpan.textContent = teks;
+}
+
+/* Badge kondisi 3-warna (Baik/Rusak Ringan/Rusak Berat) untuk sel
+   "Kondisi" di tabel DIR Terdigitalisasi. Fallback badge netral
+   kalau datanya belum ada (mis. DIR baru yang belum disurvei). */
+function renderKondisiRincian(stat){
+  const ada = stat && [stat.persenBaik, stat.persenRusakRingan, stat.persenRusakBerat].every(v => v !== null && v !== undefined && !isNaN(v));
+  if (!ada) return `<span class="badge badge--neutral">Menunggu Survei</span>`;
+
+  const fmt = v => `${Math.round(v * 1000) / 10}%`;
+  return `
+    <span class="kondisi-rincian" title="Baik ${fmt(stat.persenBaik)} &middot; Rusak Ringan ${fmt(stat.persenRusakRingan)} &middot; Rusak Berat ${fmt(stat.persenRusakBerat)}">
+      <span class="kondisi-mini"><i style="background:var(--cat-5)"></i>${fmt(stat.persenBaik)} Baik</span>
+      <span class="kondisi-mini"><i style="background:var(--cat-3)"></i>${fmt(stat.persenRusakRingan)} Ringan</span>
+      <span class="kondisi-mini"><i style="background:var(--cat-1)"></i>${fmt(stat.persenRusakBerat)} Berat</span>
+    </span>
+  `;
+}
+
+/* =========================================================
    MEMUAT DATA DINAMIS DARI APPS SCRIPT (atau fallback)
    ========================================================= */
 async function loadDataDinamis(){
@@ -969,7 +1072,8 @@ async function loadDataDinamis(){
       analytics: ANALYTICS_FALLBACK,
       aduanUsulan: ADUAN_FALLBACK,
       irigasiUmum: IRIGASI_UMUM_FALLBACK,
-      luasLayananDetail: LUAS_LAYANAN_FALLBACK
+      luasLayananDetail: LUAS_LAYANAN_FALLBACK,
+      dataMasterDIR: DATA_MASTER_DIR_FALLBACK
     };
   }
   try {
@@ -985,6 +1089,7 @@ async function loadDataDinamis(){
     json.aduanUsulan = json.aduanUsulan || [];
     json.irigasiUmum = (json.irigasiUmum && json.irigasiUmum.length) ? json.irigasiUmum : IRIGASI_UMUM_FALLBACK;
     json.luasLayananDetail = (json.luasLayananDetail && json.luasLayananDetail.length) ? json.luasLayananDetail : LUAS_LAYANAN_FALLBACK;
+    json.dataMasterDIR = (json.dataMasterDIR && json.dataMasterDIR.length) ? json.dataMasterDIR : DATA_MASTER_DIR_FALLBACK;
     return json;
   } catch (err){
     console.error('Gagal memuat data dari Apps Script, memakai data contoh:', err);
@@ -996,7 +1101,8 @@ async function loadDataDinamis(){
       analytics: ANALYTICS_FALLBACK,
       aduanUsulan: ADUAN_FALLBACK,
       irigasiUmum: IRIGASI_UMUM_FALLBACK,
-      luasLayananDetail: LUAS_LAYANAN_FALLBACK
+      luasLayananDetail: LUAS_LAYANAN_FALLBACK,
+      dataMasterDIR: DATA_MASTER_DIR_FALLBACK
     };
   }
 }
@@ -1009,6 +1115,7 @@ let ANALYTICS_DATA = ANALYTICS_FALLBACK;
 let ADUAN_DATA = ADUAN_FALLBACK;
 let IRIGASI_UMUM_DATA = IRIGASI_UMUM_FALLBACK;
 let LUAS_LAYANAN_DATA = LUAS_LAYANAN_FALLBACK;
+let DATA_MASTER_DIR = DATA_MASTER_DIR_FALLBACK;
 let SUMBER_DATA = 'contoh';
 
 /* =========================================================
@@ -1387,12 +1494,17 @@ function initAnalytics(){
 /* =========================================================
    TABEL DIR TERDIGITALISASI (dengan drill-down per saluran)
    ========================================================= */
+let MASTER_DIR_STATS = {};
+
 function initTabelDIR(){
-  const rows = Object.entries(DIR_STATS)
+  MASTER_DIR_STATS = buildMasterDirStats(DATA_MASTER_DIR);
+
+  const rows = Object.entries(MASTER_DIR_STATS)
     .map(([nama, s]) => ({ nama, ...s }))
     .sort((a, b) => b.total_len - a.total_len);
 
-  document.getElementById('countSaluran').textContent = `(${SALURAN_DATA.length} segmen)`;
+  document.getElementById('countSaluran').textContent = `(${DATA_MASTER_DIR.length} segmen)`;
+  updateInfoDIRDinamis(rows.length);
 
   const tbody = document.getElementById('dirTableBody');
   tbody.innerHTML = rows.map((r, idx) => {
@@ -1404,7 +1516,7 @@ function initTabelDIR(){
         <td>${r.primer}</td>
         <td>${r.sekunder}</td>
         <td>${r.total_len.toLocaleString('id-ID')} m</td>
-        <td><span class="badge badge--neutral">Menunggu Survei</span></td>
+        <td>${renderKondisiRincian(r)}</td>
       </tr>
       <tr class="dir-detail-row" id="${detailId}" hidden>
         <td colspan="6">
@@ -1432,14 +1544,17 @@ function initTabelDIR(){
   });
 }
 
+/* Drill-down per saluran sekarang dari Data_Master_DIR (sheet),
+   bukan lagi dari SALURAN_DATA (GeoJSON) -- GeoJSON dikhususkan
+   untuk peta saja. */
 function buildSaluranRowsForDir(namaDir){
-  return SALURAN_DATA
-    .filter(f => f.dir === namaDir)
-    .map(f => `
+  return DATA_MASTER_DIR
+    .filter(r => r.namaDIR === namaDir)
+    .map(r => `
       <tr>
-        <td>${f.name}</td>
-        <td>${f.tipe === 'Saluran Primer' ? 'Primer' : 'Sekunder'}</td>
-        <td>${f.panjang.toLocaleString('id-ID')} m</td>
+        <td>${r.namaSaluran || `${titleCase(namaDir)} &mdash; Segmen tanpa nama`}</td>
+        <td>${r.tipeSaluran === 'Saluran Primer' ? 'Primer' : 'Sekunder'}</td>
+        <td>${(Number(r.panjang) || 0).toLocaleString('id-ID')} m</td>
       </tr>
     `).join('');
 }
@@ -1510,6 +1625,7 @@ async function initApp(){
   ADUAN_DATA = dinamis.aduanUsulan;
   IRIGASI_UMUM_DATA = dinamis.irigasiUmum;
   LUAS_LAYANAN_DATA = dinamis.luasLayananDetail;
+  DATA_MASTER_DIR = dinamis.dataMasterDIR || [];
 
   initKartuRingkasan();
   initMapToggle();
