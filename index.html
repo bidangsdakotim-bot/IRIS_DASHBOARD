@@ -404,6 +404,7 @@ button.card[aria-expanded="true"] .card__chevron{transform:rotate(180deg);}
   margin-bottom:8px;
   background:#e2e8e6;
   display:block;
+  cursor:zoom-in;
 }
 .popup__photo-fallback{
   width:100%;
@@ -421,6 +422,47 @@ button.card[aria-expanded="true"] .card__chevron{transform:rotate(180deg);}
   padding:8px;
 }
 .popup__meta{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:6px;}
+
+/* ---------- Lightbox foto (klik foto di popup peta utk perbesar) ---------- */
+.foto-lightbox{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(15,26,29,0.92);
+  z-index:9999;
+  align-items:center;
+  justify-content:center;
+  padding:32px;
+  cursor:zoom-out;
+}
+.foto-lightbox.is-open{display:flex;}
+.foto-lightbox__img{
+  max-width:min(92vw, 1100px);
+  max-height:88vh;
+  object-fit:contain;
+  border-radius:6px;
+  box-shadow:0 12px 40px rgba(0,0,0,0.45);
+  cursor:default;
+}
+.foto-lightbox__close{
+  position:absolute;
+  top:18px;
+  right:22px;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  border:none;
+  background:rgba(255,255,255,0.14);
+  color:#fff;
+  font-size:22px;
+  line-height:1;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition:background 0.15s ease;
+}
+.foto-lightbox__close:hover{background:rgba(255,255,255,0.26);}
 
 /* ---------- Monitoring Infrastruktur Irigasi ---------- */
 .monitoring-layout{
@@ -882,6 +924,11 @@ a:focus-visible, button:focus-visible, input:focus-visible{
   <p>Dashboard IRIS &middot; Kabupaten Kotawaringin Timur &middot; Data <span id="footerDIRProgress">— dari — DIR</span></p>
   <p class="site-footer__meta">Sumber data: Google Sheets &amp; GeoJSON &mdash; Dinas Sumber Daya Air, Bina Marga, Bina Konstruksi, Perumahan Rakyat, dan Kawasan Permukiman</p>
 </footer>
+
+<div class="foto-lightbox" id="fotoLightbox">
+  <button type="button" class="foto-lightbox__close" id="fotoLightboxClose" aria-label="Tutup">&times;</button>
+  <img class="foto-lightbox__img" id="fotoLightboxImg" src="" alt="Foto diperbesar">
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -1580,6 +1627,47 @@ function buildAduanPopupHTML(item, isUsulan){
 }
 
 /* =========================================================
+   LIGHTBOX FOTO -- klik foto di popup peta (Survei Irigasi
+   maupun Aduan/Usulan) untuk melihat versi lebih besar.
+   Pakai event delegation di document supaya tetap berfungsi
+   untuk popup Leaflet yang di-render belakangan/dinamis, tanpa
+   perlu pasang listener satu-satu per foto.
+   ========================================================= */
+function initFotoLightbox_(){
+  const overlay = document.getElementById('fotoLightbox');
+  const imgEl = document.getElementById('fotoLightboxImg');
+  const closeBtn = document.getElementById('fotoLightboxClose');
+
+  function bukaLightbox(src, alt){
+    imgEl.src = src;
+    imgEl.alt = alt || 'Foto diperbesar';
+    overlay.classList.add('is-open');
+  }
+  function tutupLightbox(){
+    overlay.classList.remove('is-open');
+    imgEl.src = '';
+  }
+
+  document.addEventListener('click', (e) => {
+    const foto = e.target.closest('.popup__photo');
+    if (foto){
+      bukaLightbox(foto.src, foto.alt);
+      return;
+    }
+    // Klik area gelap (bukan gambar/tombol close) -> tutup
+    if (e.target === overlay){
+      tutupLightbox();
+    }
+  });
+
+  closeBtn.addEventListener('click', tutupLightbox);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('is-open')) tutupLightbox();
+  });
+}
+
+/* =========================================================
    MONITORING INFRASTRUKTUR IRIGASI (progres kegiatan)
    ========================================================= */
 function statusBadgeClass(status){
@@ -1813,6 +1901,7 @@ async function initApp(){
   DATA_MASTER_DIR = dinamis.dataMasterDIR || [];
   SURVEI_DATA = dinamis.surveiIrigasi || [];
 
+  initFotoLightbox_();
   initKartuRingkasan();
   initMapToggle();
   initPetaKegiatan();
