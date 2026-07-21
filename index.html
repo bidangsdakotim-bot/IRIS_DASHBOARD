@@ -851,7 +851,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{
     <button class="map-toggle" id="mapToggleBtn" type="button" aria-expanded="false" aria-controls="petaPanel">
       <span class="map-toggle__text">
         <span class="map-toggle__head">
-          <span class="map-toggle__title">Peta Jaringan Saluran &amp; Laporan Warga</span>
+          <span class="map-toggle__title">Peta Lokasi Usulan Saluran &amp; Laporan Warga</span>
           <span class="badge" id="petaStatusBadge"></span>
         </span>
         <span class="map-toggle__desc">Sebaran saluran irigasi serta titik aduan dan usulan warga pada peta interaktif</span>
@@ -867,14 +867,14 @@ a:focus-visible, button:focus-visible, input:focus-visible{
     </button>
 
     <div class="peta-panel" id="petaPanel">
-      <h2 class="section-title">Peta Jaringan Saluran &amp; Laporan Warga</h2>
+      <h2 class="section-title">Peta Lokasi Usulan Saluran &amp; Laporan Warga</h2>
       <p class="section-intro">Klik segmen saluran atau titik laporan untuk melihat detail. Gunakan kontrol di bawah untuk menampilkan atau menyembunyikan lapisan data.</p>
 
       <div class="map-controls">
         <label class="layer-chip layer-chip--canal">
           <input type="checkbox" id="toggleSaluran" checked>
           <span class="layer-chip__dot"></span>
-          Saluran <span class="layer-chip__count" id="countSaluran">(123 segmen)</span>
+          Saluran
         </label>
         <label class="layer-chip layer-chip--karat">
           <input type="checkbox" id="toggleAduan" checked>
@@ -1373,8 +1373,16 @@ function initLaporanToggle(){
    saat panel pertama kali dibuka, supaya tidak membebani halaman
    kalau panel tidak pernah dibuka.
    ========================================================= */
-let mapSurvei, surveiLayer;
+let mapSurvei, surveiLayer, saluranLayerSurvei;
 let mapSurveiInitialized = false;
+
+// Pencocokan nama DIR yang toleran huruf besar/kecil & spasi berlebih --
+// dipakai saat filter (sumbernya dari sheet Survei Irigasi) dicocokkan
+// ke SALURAN_DATA (sumbernya dari GeoJSON/Nama_DIR), karena penulisan
+// di dua sumber ini bisa sedikit berbeda meski merujuk DIR yang sama.
+function normalisasiDIR_(s){
+  return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
 
 function initKondisiSaluranToggle(){
   const btn = document.getElementById('kondisiSaluranToggleBtn');
@@ -1410,13 +1418,14 @@ function initMapSurvei(){
   osmLayer.addTo(mapSurvei);
   L.control.layers({ 'Peta Jalan': osmLayer, 'Citra Satelit': satelitLayer }).addTo(mapSurvei);
 
+  saluranLayerSurvei = L.layerGroup().addTo(mapSurvei);
   surveiLayer = L.layerGroup().addTo(mapSurvei);
 
   isiFilterDIRSurvei();
-  buildSurveiLayer();
+  applyFilterKondisiSaluran();
 
   document.getElementById('filterSurveiDIR').addEventListener('change', (e) => {
-    buildSurveiLayer(e.target.value);
+    applyFilterKondisiSaluran(e.target.value);
   });
 }
 
@@ -1426,6 +1435,65 @@ function isiFilterDIRSurvei(){
 
   select.innerHTML = '<option value="">Semua DIR</option>' +
     dirUnik.map(dir => `<option value="${dir}">${dir}</option>`).join('');
+}
+
+/* Layer garis GeoJSON saluran sebagai referensi/latar di peta Kondisi
+   Saluran -- sumber & gaya sama persis dengan buildSaluranLayer() pada
+   peta "Peta Lokasi Usulan Saluran & Laporan Warga". Filter DIR-nya memakai
+   nilai dari dropdown yang sumbernya sheet Survei Irigasi (lihat
+   isiFilterDIRSurvei), jadi pencocokan ke Nama_DIR (GeoJSON) dibuat
+   toleran lewat normalisasiDIR_ supaya tetap match walau beda kapital/spasi. */
+function buildSaluranLayerSurvei(filterDir){
+  saluranLayerSurvei.clearLayers();
+
+  const filterKey = filterDir ? normalisasiDIR_(filterDir) : null;
+  const dataTerfilter = filterKey
+    ? SALURAN_DATA.filter(feat => normalisasiDIR_(feat.dir) === filterKey)
+    : SALURAN_DATA;
+
+  const bounds = [];
+
+  dataTerfilter.forEach(feat => {
+    const isPrimer = feat.tipe === 'Saluran Primer';
+    const style = {
+      color: isPrimer ? '#124B60' : '#8FBFCE',
+      weight: isPrimer ? 4 : 2,
+      opacity: isPrimer ? 0.9 : 0.75
+    };
+
+    feat.lines.forEach(line => {
+      const poly = L.polyline(line, style);
+      const panjangFmt = feat.panjang.toLocaleString('id-ID');
+      poly.bindPopup(`
+        <div class="popup">
+          <span class="popup__kategori popup__kategori--saluran">${isPrimer ? 'Primer' : 'Sekunder'}</span>
+          <h4>${feat.name}</h4>
+          <p>${feat.dir}</p>
+          <p class="popup__meta">Panjang segmen: ${panjangFmt} m</p>
+        </div>
+      `);
+      saluranLayerSurvei.addLayer(poly);
+      line.forEach(pt => bounds.push(pt));
+    });
+  });
+
+  return bounds;
+}
+
+/* Satu pintu untuk menerapkan filter DIR di peta Kondisi Saluran --
+   menyaring garis saluran (GeoJSON) & titik survei sekaligus, lalu
+   menggabungkan bounds keduanya supaya peta fit ke SATU area yang benar
+   (bukan fit dua kali/tertimpa). */
+function applyFilterKondisiSaluran(filterDir){
+  const boundsSaluran = buildSaluranLayerSurvei(filterDir);
+  const boundsSurvei = buildSurveiLayer(filterDir);
+  const allBounds = boundsSaluran.concat(boundsSurvei);
+
+  if (allBounds.length){
+    mapSurvei.fitBounds(allBounds, { padding: [30, 30], maxZoom: 15 });
+  } else {
+    mapSurvei.setView([-2.881, 112.935], 12);
+  }
 }
 
 function buildSurveiLayer(filterDir){
@@ -1458,11 +1526,7 @@ function buildSurveiLayer(filterDir){
 
   document.getElementById('countSurvei').textContent = `(${titikValid} titik)`;
 
-  if (bounds.length){
-    mapSurvei.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
-  } else {
-    mapSurvei.setView([-2.881, 112.935], 12);
-  }
+  return bounds;
 }
 
 function buildSurveiPopupHTML(item){
@@ -1818,7 +1882,6 @@ function initTabelDIR(){
     .map(([nama, s]) => ({ nama, ...s }))
     .sort((a, b) => b.total_len - a.total_len);
 
-  document.getElementById('countSaluran').textContent = `(${DATA_MASTER_DIR.length} segmen)`;
   updateInfoDIRDinamis(rows.length);
 
   const tbody = document.getElementById('dirTableBody');
