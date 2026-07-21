@@ -881,6 +881,14 @@ a:focus-visible, button:focus-visible, input:focus-visible{
           <span class="layer-chip__dot"></span>
           Aduan &amp; Usulan <span class="layer-chip__count" id="countAduan">(— titik)</span>
         </label>
+        <label class="layer-chip layer-chip--canal" for="filterPetaDIR" style="cursor:default;">
+          <span class="layer-chip__dot"></span>
+          Filter DIR
+        </label>
+        <select id="filterPetaDIR" class="filter-select">
+          <option value="">Semua DIR</option>
+        </select>
+        <span class="layer-chip__count" id="countSaluranFilter"></span>
       </div>
 
       <div id="map"></div>
@@ -1522,6 +1530,7 @@ function initMap(){
   saluranLayer = L.layerGroup();
   aduanLayer = L.layerGroup();
 
+  isiFilterPetaDIR();
   buildSaluranLayer();
   buildAduanLayer();
 
@@ -1534,10 +1543,30 @@ function initMap(){
   document.getElementById('toggleAduan').addEventListener('change', (e) => {
     if (e.target.checked) map.addLayer(aduanLayer); else map.removeLayer(aduanLayer);
   });
+  document.getElementById('filterPetaDIR').addEventListener('change', (e) => {
+    buildSaluranLayer(e.target.value);
+  });
 }
 
-function buildSaluranLayer(){
-  SALURAN_DATA.forEach(feat => {
+function isiFilterPetaDIR(){
+  const select = document.getElementById('filterPetaDIR');
+  const dirUnik = [...new Set(SALURAN_DATA.map(f => f.dir).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'id'));
+
+  select.innerHTML = '<option value="">Semua DIR</option>' +
+    dirUnik.map(dir => `<option value="${dir}">${dir}</option>`).join('');
+}
+
+function buildSaluranLayer(filterDir){
+  saluranLayer.clearLayers();
+
+  const dataTerfilter = filterDir
+    ? SALURAN_DATA.filter(feat => feat.dir === filterDir)
+    : SALURAN_DATA;
+
+  let segmenCount = 0;
+  const bounds = [];
+
+  dataTerfilter.forEach(feat => {
     const isPrimer = feat.tipe === 'Saluran Primer';
     // Leaflet tidak baca CSS var() langsung, jadi pakai nilai hex yang sama persis dengan token warna di CSS
     const style = {
@@ -1558,8 +1587,21 @@ function buildSaluranLayer(){
         </div>
       `);
       saluranLayer.addLayer(poly);
+      segmenCount++;
+      line.forEach(pt => bounds.push(pt));
     });
   });
+
+  const countFilterEl = document.getElementById('countSaluranFilter');
+  if (countFilterEl){
+    countFilterEl.textContent = filterDir ? `(${segmenCount} ruas ditampilkan)` : '';
+  }
+
+  if (filterDir && bounds.length){
+    map.fitBounds(bounds, { padding: [30, 30], maxZoom: 15 });
+  } else if (!filterDir){
+    map.setView([-2.881, 112.935], 12);
+  }
 }
 
 function buildAduanLayer(){
