@@ -739,7 +739,7 @@ a:focus-visible, button:focus-visible, input:focus-visible{
       <button class="card card--dynamic-kondisi card--clickable" type="button" id="kondisiSaluranToggleBtn" aria-expanded="false" aria-controls="kondisiSaluranPanel">
         <p class="card__eyebrow">Kondisi Saluran</p>
         <p class="card__value" id="kondisiSaluranValue">65<span class="unit">%</span></p>
-        <p class="card__desc">Luas daerah irigasi kewenangan dalam kondisi <strong id="kondisiKategoriGlobal">—</strong></p>
+        <p class="card__desc">Luas daerah irigasi kewenangan Kabupaten dalam kondisi <strong id="kondisiKategoriGlobal">—</strong></p>
         <span class="card__action">Lihat peta kondisi saluran <span class="card__chevron" aria-hidden="true">&#8595;</span></span>
       </button>
 
@@ -1159,8 +1159,8 @@ function renderKondisiRincian(stat){
   return `
     <span class="kondisi-rincian" title="Baik ${fmt(stat.persenBaik)} &middot; Rusak Ringan ${fmt(stat.persenRusakRingan)} &middot; Rusak Berat ${fmt(stat.persenRusakBerat)}">
       <span class="kondisi-mini"><i style="background:var(--cat-5)"></i>${fmt(stat.persenBaik)} Baik</span>
-      <span class="kondisi-mini"><i style="background:var(--cat-3)"></i>${fmt(stat.persenRusakRingan)} Ringan</span>
-      <span class="kondisi-mini"><i style="background:var(--cat-1)"></i>${fmt(stat.persenRusakBerat)} Berat</span>
+      <span class="kondisi-mini"><i style="background:var(--cat-3)"></i>${fmt(stat.persenRusakRingan)} Rusak Ringan</span>
+      <span class="kondisi-mini"><i style="background:var(--cat-1)"></i>${fmt(stat.persenRusakBerat)} Rusak Berat</span>
     </span>
   `;
 }
@@ -1309,6 +1309,19 @@ function initMapToggle(){
   });
 }
 
+/* Memindahkan panel kartu ringkasan (dirPanel / kondisiSaluranPanel /
+   luasLayananPanel / laporanPanel) ke posisi paling atas di antara
+   panel-panel sejenis, tepat di bawah baris kartu (.cards). Dipanggil
+   setiap kali sebuah kartu DIBUKA, supaya panel yang terakhir diklik
+   selalu tampil paling atas, dan panel lain yang masih terbuka
+   mengikuti di bawahnya sesuai urutan klik sebelumnya. Panel peta
+   digitalisasi (petaPanel) sengaja tidak ikut diatur karena berada
+   di section terpisah. */
+function pindahkanPanelKeAtas_(panel){
+  const cardsRow = panel.parentElement.querySelector('.cards');
+  if (cardsRow) cardsRow.insertAdjacentElement('afterend', panel);
+}
+
 /* =========================================================
    TOGGLE PANEL DAFTAR DIR (kartu "Total DIR")
    ========================================================= */
@@ -1319,6 +1332,7 @@ function initDirToggle(){
   btn.addEventListener('click', () => {
     const isOpen = panel.classList.toggle('is-open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) pindahkanPanelKeAtas_(panel);
   });
 }
 
@@ -1332,6 +1346,7 @@ function initLuasLayananToggle(){
   btn.addEventListener('click', () => {
     const isOpen = panel.classList.toggle('is-open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) pindahkanPanelKeAtas_(panel);
   });
 }
 
@@ -1362,6 +1377,7 @@ function initLaporanToggle(){
   btn.addEventListener('click', () => {
     const isOpen = panel.classList.toggle('is-open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) pindahkanPanelKeAtas_(panel);
   });
 }
 
@@ -1391,6 +1407,7 @@ function initKondisiSaluranToggle(){
   btn.addEventListener('click', () => {
     const isOpen = panel.classList.toggle('is-open');
     btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    if (isOpen) pindahkanPanelKeAtas_(panel);
     if (isOpen && !mapSurveiInitialized){
       mapSurveiInitialized = true;
       setTimeout(() => {
